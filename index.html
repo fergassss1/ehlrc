@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ehlrc</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Google+Sans+Flex:opsz,wght@8..144,100..1000&family=Roboto:wght@400;500&display=swap" rel="stylesheet">
+    
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet">
+
+    <style>
+        :root {
+            /* Material 3 Dark Palette with Orange Accent */
+            --md-sys-color-background: #1f1105;
+            --md-sys-color-on-background: #eae0d9;
+            --md-sys-color-surface: #27190c;
+            --md-sys-color-surface-variant: #514438;
+            --md-sys-color-on-surface: #eae0d9;
+            --md-sys-color-on-surface-variant: #d5c3b5;
+            --md-sys-color-primary: #ffb77c;
+            --md-sys-color-on-primary: #4f2500;
+            --md-sys-color-primary-container: #6f3800;
+            --md-sys-color-on-primary-container: #ffdcbe;
+            --md-sys-color-outline: #9e8e81;
+            
+            --md-shape-corner-medium: 12px;
+            --md-shape-corner-full: 9999px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--md-sys-color-background);
+            color: var(--md-sys-color-on-background);
+            font-family: 'Google Sans Flex', 'Roboto', sans-serif;
+            font-size: 16px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 16px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 600px;
+            background-color: var(--md-sys-color-surface);
+            padding: 24px;
+            border-radius: var(--md-shape-corner-medium);
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 400;
+            color: var(--md-sys-color-primary);
+            letter-spacing: -0.05em;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .input-field {
+            background-color: transparent;
+            border: 1px solid var(--md-sys-color-outline);
+            border-radius: var(--md-shape-corner-medium);
+            color: var(--md-sys-color-on-surface);
+            font-family: inherit;
+            padding: 16px;
+            font-size: 1rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .input-field:focus {
+            border-color: var(--md-sys-color-primary);
+            border-width: 2px;
+            padding: 15px; /* Adjust padding to prevent layout shift with 2px border */
+        }
+
+        .button-row {
+            display: flex;
+            gap: 12px;
+        }
+
+        button {
+            font-family: inherit;
+            font-weight: 500;
+            font-size: 0.875rem;
+            height: 40px;
+            padding: 0 24px;
+            border: none;
+            border-radius: var(--md-shape-corner-full);
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: opacity 0.2s;
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-primary {
+            background-color: var(--md-sys-color-primary);
+            color: var(--md-sys-color-on-primary);
+        }
+
+        .btn-secondary {
+            background-color: var(--md-sys-color-surface-variant);
+            color: var(--md-sys-color-on-surface-variant);
+        }
+
+        .status-text {
+            font-size: 0.875rem;
+            color: var(--md-sys-color-on-surface-variant);
+            min-height: 20px;
+        }
+
+        .results-box {
+            position: relative;
+            background-color: var(--md-sys-color-surface-variant);
+            border-radius: var(--md-shape-corner-medium);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            height: 300px;
+        }
+
+        .results-content {
+            padding: 16px;
+            overflow-y: auto;
+            flex-grow: 1;
+            white-space: pre-wrap;
+            font-family: inherit;
+            font-size: 1rem;
+            line-height: 1.5;
+            color: var(--md-sys-color-on-surface-variant);
+        }
+
+        .action-bar {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            display: flex;
+            gap: 8px;
+        }
+
+        .icon-btn {
+            background-color: var(--md-sys-color-surface);
+            color: var(--md-sys-color-primary);
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: var(--md-shape-corner-full);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0px 1px 3px rgba(0,0,0,0.3);
+        }
+
+        .icon-btn:hover {
+            opacity: 0.9;
+        }
+
+        .material-icons-outpined {
+            font-size: 20px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>ehlrc</h1>
+        
+        <div class="input-group">
+            <input type="text" id="title" class="input-field" placeholder="title" autocomplete="off">
+            <input type="text" id="artist" class="input-field" placeholder="artist" autocomplete="off">
+        </div>
+
+        <div class="button-row">
+            <button id="search-btn" class="btn-primary" onclick="fetchLyrics()">get lyrics</button>
+        </div>
+
+        <div id="status" class="status-text"></div>
+
+        <div class="results-box">
+            <div class="action-bar">
+                <button class="icon-btn" onclick="copyToClipboard()" title="copy to clipboard">
+                    <span class="material-icons-Outlined">content_copy</span>
+                </button>
+            </div>
+            <div id="output" class="results-content">lyrics will appear here</div>
+        </div>
+    </div>
+
+    <script>
+        const endpoints = [
+            "https://lyricsplus.prjktla.my.id",
+            "https://lyricsplus.atomix.one",
+            "https://lyricsplus.binimum.org",
+            "https://lyricsplus.prjktla.workers.dev",
+            "https://lyricsplus-seven.vercel.app"
+        ];
+
+        async function fetchLyrics() {
+            const title = encodeURIComponent(document.getElementById('title').value.trim());
+            const artist = encodeURIComponent(document.getElementById('artist').value.trim());
+            const output = document.getElementById('output');
+            const status = document.getElementById('status');
+            const searchBtn = document.getElementById('search-btn');
+
+            if (!title) {
+                status.textContent = "please enter a title";
+                return;
+            }
+
+            status.textContent = "searching mirrors...";
+            output.textContent = "";
+            searchBtn.disabled = true;
+
+            for (const base of endpoints) {
+                const url = `${base}/v2/lyrics/get?title=${title}&artist=${artist}`;
+                try {
+                    status.textContent = `trying mirror: ${new URL(base).hostname}`;
+                    const response = await fetch(url);
+                    
+                    if (response.ok) {
+                        const data = await response.json();
+                        
+                        // Handles standard response variants (plain string, lyrics array, or object properties)
+                        if (data && data.lyrics) {
+                            output.textContent = Array.isArray(data.lyrics) ? data.lyrics.join('\n') : data.lyrics;
+                            status.textContent = `found via ${new URL(base).hostname}`;
+                            searchBtn.disabled = false;
+                            return;
+                        }
+                    }
+                } catch (e) {
+                    // Fail silently to proceed to the next mirror
+                    console.error(`failed to fetch from ${base}:`, e);
+                }
+            }
+
+            status.textContent = "could not find lyrics on any mirror";
+            output.textContent = "no results found";
+            searchBtn.disabled = false;
+        }
+
+        function copyToClipboard() {
+            const text = document.getElementById('output').textContent;
+            const status = document.getElementById('status');
+            
+            if (text && text !== "lyrics will appear here" && text !== "no results found") {
+                navigator.clipboard.writeText(text).then(() => {
+                    const currentStatus = status.textContent;
+                    status.textContent = "copied to clipboard";
+                    setTimeout(() => {
+                        status.textContent = currentStatus;
+                    }, 2000);
+                }).catch(err => {
+                    status.textContent = "failed to copy text";
+                });
+            }
+        }
+    </script>
+</body>
+</html>

@@ -398,116 +398,149 @@
         output.textContent = "no results found";
         searchBtn.disabled = false;
     }
+function processTtmlToElrc() {
+    let jsonText = document.getElementById('raw-json-input').value.trim();
+    const output = document.getElementById('magic-output');
+    const status = document.getElementById('magic-status');
+    
+    const useMultiperson = document.getElementById('opt-multiperson').checked;
+    const bgStyle = document.querySelector('input[name="bg-type"]:checked').value;
 
-    function processTtmlToElrc() {
-        const jsonText = document.getElementById('raw-json-input').value.trim();
-        const output = document.getElementById('magic-output');
-        const status = document.getElementById('magic-status');
+    if (!jsonText) {
+        status.textContent = "error: input code container is empty";
+        return;
+    }
+
+    let payload;
+    try {
+        // try to parse normally first
+        payload = JSON.parse(jsonText);
+    } catch (err) {
+        // if it fails due to a truncation/cut-off, step in and patch it
+        console.log("incomplete payload detected. attempting layout recovery...");
         
-        const useMultiperson = document.getElementById('opt-multiperson').checked;
-        const bgStyle = document.querySelector('input[name="bg-type"]:checked').value;
+        try {
+            // remove trailing commas or loose properties at the cutoff point
+            let repairedText = jsonText.replace(/,\s*\"?[a-zA-Z0-9_\-]*\"?\s*:\s*$/g, '');
+            repairedText = repairedText.trim();
+            
+            // balance out arrays and objects depending on where it broke
+            if (repairedText.endsWith('{')) {
+                repairedText = repairedText.substring(0, repairedText.length - 1).trim();
+            }
+            if (repairedText.endsWith(',')) {
+                repairedText = repairedText.substring(0, repairedText.length - 1).trim();
+            }
+            
+            // close out open array tracks and main root objects safely
+            if (!repairedText.includes(']')) repairedText += ']';
+            if (!repairedText.includes('}')) repairedText += '}';
+            
+            payload = JSON.parse(repairedText);
+            status.textContent = "recovered incomplete layout safely!";
+        } catch (recoveryErr) {
+            console.error(recoveryErr);
+            status.textContent = "malformed text parsing error: " + err.message;
+            return;
+        }
+    }
 
-        if (!jsonText) {
-            status.textContent = "error: input code container is empty";
+    try {
+        let rawLyricsArray = [];
+        if (payload.lyrics && Array.isArray(payload.lyrics)) {
+            rawLyricsArray = payload.lyrics;
+        } else if (Array.isArray(payload)) {
+            rawLyricsArray = payload;
+        } else {
+            status.textContent = "unrecognized schema tree pattern";
             return;
         }
 
-        try {
-            const payload = JSON.parse(jsonText);
-            
-            let rawLyricsArray = [];
-            if (payload.lyrics && Array.isArray(payload.lyrics)) {
-                rawLyricsArray = payload.lyrics;
-            } else if (Array.isArray(payload)) {
-                rawLyricsArray = payload;
-            } else {
-                status.textContent = "unrecognized schema tree pattern";
-                return;
+        // bundle continuous syllable items into clean line arrays using isLineEnding
+        let processedLines = [];
+        let currentLineWords = [];
+
+        rawLyricsArray.forEach(item => {
+            if (!item) return;
+            currentLineWords.push(item);
+            if (item.isLineEnding === 1) {
+                processedLines.push(currentLineWords);
+                currentLineWords = [];
             }
+        });
+        
+        if (currentLineWords.length > 0) {
+            processedLines.push(currentLineWords);
+        }
 
-            // step 1: bundle the continuous syllable items into clean line arrays using isLineEnding
-            let processedLines = [];
-            let currentLineWords = [];
+        let syncedLyrics = "";
 
-            rawLyricsArray.forEach(item => {
-                if (!item) return;
-                currentLineWords.push(item);
-                if (item.isLineEnding === 1) {
-                    processedLines.push(currentLineWords);
-                    currentLineWords = [];
+        // process every line bundle according to specifications
+        processedLines.forEach(lineItems => {
+            if (lineItems.length === 0) return;
+
+            let mainVocals = [];
+            let backgroundVocals = [];
+
+            lineItems.forEach(item => {
+                const isBg = item.element && (item.element.isBackground || item.element.songPart === "Background");
+                if (isBg) {
+                    backgroundVocals.push(item);
+                } else {
+                    mainVocals.push(item);
                 }
             });
-            // catch any leftover words if the file cuts off without an explicit line ending flag
-            if (currentLineWords.length > 0) {
-                processedLines.push(currentLineWords);
+
+            if (mainVocals.length > 0) {
+                const lineStartTime = mainVocals[0].time;
+                syncedLyrics += `[${toLrcTimestamp(lineStartTime)}]`;
+
+                if (useMultiperson) {
+                    const singer = (mainVocals[0].element && mainVocals[0].element.singer) ? mainVocals[0].element.singer : "v1";
+                    syncedLyrics += (singer === "v2" || singer === "voice2") ? "v2:" : "v1:";
+                }
+
+                mainVocals.forEach(syllable => {
+                    const start = toLrcTimestamp(syllable.time);
+                    const end = toLrcTimestamp(syllable.time + (syllable.duration || 0));
+                    syncedLyrics += `<${start}>${syllable.text}<${end}>`;
+                });
             }
 
-            let syncedLyrics = "";
-
-            // step 2: process every line bundle according to your exact string preferences
-            processedLines.forEach(lineItems => {
-                if (lineItems.length === 0) return;
-
-                // separate normal main vocals from background elements inside this line block
-                let mainVocals = [];
-                let backgroundVocals = [];
-
-                lineItems.forEach(item => {
-                    const isBg = item.element && (item.element.isBackground || item.element.songPart === "Background");
-                    if (isBg) {
-                        backgroundVocals.push(item);
-                    } else {
-                        mainVocals.push(item);
-                    }
-                });
-
-                // process the main vocal track string block
-                if (mainVocals.length > 0) {
-                    const lineStartTime = mainVocals[0].time;
-                    syncedLyrics += `[${toLrcTimestamp(lineStartTime)}]`;
-
-                    if (useMultiperson) {
-                        const singer = (mainVocals[0].element && mainVocals[0].element.singer) ? mainVocals[0].element.singer : "v1";
-                        syncedLyrics += (singer === "v2" || singer === "voice2") ? "v2:" : "v1:";
-                    }
-
-                    mainVocals.forEach(syllable => {
+            if (backgroundVocals.length > 0) {
+                const bgStartTime = backgroundVocals[0].time;
+                
+                if (bgStyle === "inline-tag") {
+                    syncedLyrics += "\n[bg:";
+                    backgroundVocals.forEach(syllable => {
                         const start = toLrcTimestamp(syllable.time);
                         const end = toLrcTimestamp(syllable.time + (syllable.duration || 0));
-                        
+                        syncedLyrics += `<${start}>${syllable.text}<${end}>`;
+                    });
+                    syncedLyrics += "]";
+                } else {
+                    syncedLyrics += `\n[${toLrcTimestamp(bgStartTime)}]{bg}`;
+                    backgroundVocals.forEach(syllable => {
+                        const start = toLrcTimestamp(syllable.time);
+                        const end = toLrcTimestamp(syllable.time + (syllable.duration || 0));
                         syncedLyrics += `<${start}>${syllable.text}<${end}>`;
                     });
                 }
+            }
 
-                // process the background vocal track configurations if they exist
-                if (backgroundVocals.length > 0) {
-                    const bgStartTime = backgroundVocals[0].time;
-                    
-                    if (bgStyle === "inline-tag") {
-                        syncedLyrics += "\n[bg:";
-                        backgroundVocals.forEach(syllable => {
-                            const start = toLrcTimestamp(syllable.time);
-                            const end = toLrcTimestamp(syllable.time + (syllable.duration || 0));
-                            syncedLyrics += `<${start}>${syllable.text}<${end}>`;
-                        });
-                        syncedLyrics += "]";
-                    } else {
-                        // choice format 2: [timestamp]{bg}<timestamp>text...
-                        syncedLyrics += `\n[${toLrcTimestamp(bgStartTime)}]{bg}`;
-                        backgroundVocals.forEach(syllable => {
-                            const start = toLrcTimestamp(syllable.time);
-                            const end = toLrcTimestamp(syllable.time + (syllable.duration || 0));
-                            syncedLyrics += `<${start}>${syllable.text}<${end}>`;
-                        });
-                    }
-                }
+            syncedLyrics += "\n";
+        });
 
-                syncedLyrics += "\n";
-            });
-
-            output.textContent = syncedLyrics.trim() || "processing returned empty structural parameters";
+        output.textContent = syncedLyrics.trim() || "processing returned empty structural parameters";
+        if (status.textContent !== "recovered incomplete layout safely!") {
             status.textContent = "transformation process complete";
+        }
 
+    } catch (err) {
+        console.error(err);
+        status.textContent = "processing error: " + err.message;
+    }
+}
         } catch (err) {
             console.error(err);
             status.textContent = "malformed text parsing error: " + err.message;

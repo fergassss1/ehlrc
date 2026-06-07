@@ -51,6 +51,39 @@
         .container {
             width: 100%;
             max-width: 600px;
+            display: flex;
+            flex-direction: column;
+            gap: 0px;
+        }
+
+        /* Tab Bar Navigation */
+        .tab-bar {
+            display: flex;
+            gap: 4px;
+            padding-left: 8px;
+        }
+
+        .tab-btn {
+            background: transparent;
+            color: var(--md-sys-color-outline);
+            font-family: inherit;
+            font-size: 1rem;
+            padding: 8px 16px;
+            border: none;
+            border-radius: var(--md-shape-corner-medium) var(--md-shape-corner-medium) 0 0;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .tab-btn.active {
+            background-color: var(--md-sys-color-surface);
+            color: var(--md-sys-color-primary);
+            text-decoration: underline;
+            text-underline-offset: 4px;
+        }
+
+        /* Dashboard Panel Box */
+        .panel {
             background-color: var(--md-sys-color-surface);
             padding: 24px;
             border-radius: var(--md-shape-corner-medium);
@@ -59,11 +92,21 @@
             gap: 16px;
         }
 
-        h1 {
-            font-size: 2rem;
+        .tab-content {
+            display: none;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .tab-content.active {
+            display: flex;
+        }
+
+        h2 {
+            font-size: 1.5rem;
             font-weight: 400;
             color: var(--md-sys-color-primary);
-            letter-spacing: -0.05em;
+            letter-spacing: -0.03em;
         }
 
         .input-group {
@@ -90,35 +133,64 @@
             padding: 15px;
         }
 
-        .button-row {
-            display: flex;
-            gap: 12px;
+        textarea.input-field {
+            resize: vertical;
+            min-height: 120px;
+            font-family: monospace;
+            font-size: 0.875rem;
         }
 
-        button {
+        /* Options for Custom Formatting */
+        .options-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            font-size: 0.95rem;
+        }
+
+        .option-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+        }
+
+        .option-row input[type="checkbox"],
+        .option-row input[type="radio"] {
+            accent-color: var(--md-sys-color-primary);
+            width: 16px;
+            height: 16px;
+        }
+
+        .radio-sub-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            padding-left: 24px;
+            margin-top: 4px;
+        }
+
+        button.btn-primary {
             font-family: inherit;
             font-weight: 500;
             font-size: 0.875rem;
             height: 40px;
             padding: 0 24px;
             border: none;
+            background-color: var(--md-sys-color-primary);
+            color: var(--md-sys-color-on-primary);
             border-radius: var(--md-shape-corner-full);
             cursor: pointer;
+            align-self: flex-start;
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            gap: 8px;
             transition: opacity 0.2s;
         }
 
-        button:disabled {
+        button.btn-primary:disabled {
             opacity: 0.5;
             cursor: not-allowed;
-        }
-
-        .btn-primary {
-            background-color: var(--md-sys-color-primary);
-            color: var(--md-sys-color-on-primary);
         }
 
         .status-text {
@@ -127,6 +199,7 @@
             min-height: 20px;
         }
 
+        /* Output Window Container */
         .results-box {
             position: relative;
             background-color: var(--md-sys-color-surface-variant);
@@ -134,15 +207,15 @@
             overflow: hidden;
             display: flex;
             flex-direction: column;
-            height: 400px; /* bumped height up slightly to look better with large code chunks */
+            height: 300px;
         }
 
         .results-content {
             padding: 16px;
             overflow-y: auto;
             flex-grow: 1;
-            white-space: pre; /* keeps the beautiful json spacing structure intact */
-            font-family: monospace; /* code font makes reading huge raw payloads way cleaner */
+            white-space: pre-wrap;
+            font-family: monospace;
             font-size: 0.875rem;
             line-height: 1.5;
             color: var(--md-sys-color-on-surface-variant);
@@ -154,6 +227,7 @@
             right: 8px;
             display: flex;
             gap: 8px;
+            z-index: 10;
         }
 
         .icon-btn {
@@ -182,99 +256,281 @@
 <body>
 
     <div class="container">
-        <h1>ehlrc</h1>
-        
-        <div class="input-group">
-            <input type="text" id="title" class="input-field" placeholder="title" autocomplete="off">
-            <input type="text" id="artist" class="input-field" placeholder="artist" autocomplete="off">
+        <div class="tab-bar">
+            <button class="tab-btn active" onclick="switchTab('grabbr-tab', this)">ttml grabbr</button>
+            <button class="tab-btn" onclick="switchTab('magic-tab', this)">elrc magic</button>
         </div>
 
-        <div class="button-row">
-            <button id="search-btn" class="btn-primary" onclick="fetchRawPayload()">get raw ttml</button>
-        </div>
-
-        <div id="status" class="status-text"></div>
-
-        <div class="results-box">
-            <div class="action-bar">
-                <button class="icon-btn" onclick="copyToClipboard()" title="copy to clipboard">
-                    <span class="material-icons-outlined">content_copy</span>
-                </button>
+        <div class="panel">
+            
+            <div id="grabbr-tab" class="tab-content active">
+                <h2>ehlrc</h2>
+                <div class="input-group">
+                    <input type="text" id="title" class="input-field" placeholder="title" autocomplete="off">
+                    <input type="text" id="artist" class="input-field" placeholder="artist" autocomplete="off">
+                </div>
+                <button id="search-btn" class="btn-primary" onclick="fetchRawPayload()">get raw ttml</button>
+                <div id="grabbr-status" class="status-text"></div>
+                <div class="results-box">
+                    <div class="action-bar">
+                        <button class="icon-btn" onclick="copyToClipboard('grabbr-output', 'grabbr-status')" title="copy to clipboard">
+                            <span class="material-icons-outlined">content_copy</span>
+                        </button>
+                    </div>
+                    <div id="grabbr-output" class="results-content">raw json payload will appear here</div>
+                </div>
             </div>
-            <div id="output" class="results-content">raw json payload will appear here</div>
+
+            <div id="magic-tab" class="tab-content">
+                <h2>insert ttml</h2>
+                <div class="input-group">
+                    <textarea id="raw-json-input" class="input-field" placeholder='paste raw data payload json tree here...'></textarea>
+                </div>
+                
+                <h2>elrc format</h2>
+                <div class="options-group">
+                    <label class="option-row">
+                        <input type="checkbox" id="opt-multiperson" checked>
+                        <span>multiperson</span>
+                    </label>
+                    <div>
+                        <span style="color: var(--md-sys-color-on-surface-variant);">bg type</span>
+                        <div class="radio-sub-group">
+                            <label class="option-row">
+                                <input type="radio" name="bg-type" value="inline-tag" checked>
+                                <span>[bg:&lt;timestamp&gt;text]</span>
+                            </label>
+                            <label class="option-row">
+                                <input type="radio" name="bg-type" value="split-modifier">
+                                <span>[timestamp]{bg}&lt;timestamp&gt;text</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                
+                <button class="btn-primary" onclick="processTtmlToElrc()">get elrc</button>
+                <div id="magic-status" class="status-text"></div>
+                <div class="results-box">
+                    <div class="action-bar">
+                        <button class="icon-btn" onclick="copyToClipboard('magic-output', 'magic-status')" title="copy to clipboard">
+                            <span class="material-icons-outlined">content_copy</span>
+                        </button>
+                    </div>
+                    <div id="magic-output" class="results-content">output is here</div>
+                </div>
+            </div>
+
         </div>
     </div>
-
     <script>
-        const endpoints = [
-            "https://lyrics.geeked.wtf",
-            "https://lyricsplus.prjktla.my.id",
-            "https://lyricsplus.atomix.one",
-            "https://lyricsplus.binimum.org",
-            "https://lyricsplus.prjktla.workers.dev",
-            "https://lyricsplus-seven.vercel.app"
-        ];
+    const endpoints = [
+        "https://lyrics.geeked.wtf",
+        "https://lyricsplus.prjktla.my.id",
+        "https://lyricsplus.atomix.one",
+        "https://lyricsplus.binimum.org",
+        "https://lyricsplus.prjktla.workers.dev",
+        "https://lyricsplus-seven.vercel.app"
+    ];
 
-        async function fetchRawPayload() {
-            const title = encodeURIComponent(document.getElementById('title').value.trim());
-            const artist = encodeURIComponent(document.getElementById('artist').value.trim());
-            const output = document.getElementById('output');
-            const status = document.getElementById('status');
-            const searchBtn = document.getElementById('search-btn');
+    function switchTab(tabId, element) {
+        document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+        
+        document.getElementById(tabId).classList.add('active');
+        element.classList.add('active');
+    }
 
-            if (!title) {
-                status.textContent = "please enter a title";
+    // formatting milliseconds directly to the exact required format: mm:ss.xxx
+    function toLrcTimestamp(msInput) {
+        if (msInput === undefined || msInput === null) return "00:00.000";
+        let totalSeconds = parseFloat(msInput) / 1000;
+        if (isNaN(totalSeconds) || totalSeconds < 0) totalSeconds = 0;
+        
+        const mins = Math.floor(totalSeconds / 60);
+        const secs = Math.floor(totalSeconds % 60);
+        const ms = Math.floor((totalSeconds % 1) * 1000);
+        
+        const mm = String(mins).padStart(2, '0');
+        const ss = String(secs).padStart(2, '0');
+        const xxx = String(ms).padStart(3, '0');
+        
+        return `${mm}:${ss}.${xxx}`;
+    }
+
+    async function fetchRawPayload() {
+        const title = encodeURIComponent(document.getElementById('title').value.trim());
+        const artist = encodeURIComponent(document.getElementById('artist').value.trim());
+        const output = document.getElementById('grabbr-output');
+        const status = document.getElementById('grabbr-status');
+        const searchBtn = document.getElementById('search-btn');
+
+        if (!title) {
+            status.textContent = "please enter a title";
+            return;
+        }
+
+        status.textContent = "searching mirrors...";
+        output.textContent = "";
+        searchBtn.disabled = true;
+
+        for (const base of endpoints) {
+            const url = `${base}/v1/lyrics/get?title=${title}&artist=${artist}`;
+            try {
+                status.textContent = `trying mirror: ${new URL(base).hostname}`;
+                const response = await fetch(url);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data) {
+                        output.textContent = JSON.stringify(data, null, 2);
+                        status.textContent = `found via ${new URL(base).hostname}`;
+                        searchBtn.disabled = false;
+                        document.getElementById('raw-json-input').value = JSON.stringify(data, null, 2);
+                        return;
+                    }
+                }
+            } catch (e) {
+                console.error(`failed to fetch payload from ${base}:`, e);
+            }
+        }
+
+        status.textContent = "could not find raw data on any mirror";
+        output.textContent = "no results found";
+        searchBtn.disabled = false;
+    }
+
+    function processTtmlToElrc() {
+        const jsonText = document.getElementById('raw-json-input').value.trim();
+        const output = document.getElementById('magic-output');
+        const status = document.getElementById('magic-status');
+        
+        const useMultiperson = document.getElementById('opt-multiperson').checked;
+        const bgStyle = document.querySelector('input[name="bg-type"]:checked').value;
+
+        if (!jsonText) {
+            status.textContent = "error: input code container is empty";
+            return;
+        }
+
+        try {
+            const payload = JSON.parse(jsonText);
+            
+            let rawLyricsArray = [];
+            if (payload.lyrics && Array.isArray(payload.lyrics)) {
+                rawLyricsArray = payload.lyrics;
+            } else if (Array.isArray(payload)) {
+                rawLyricsArray = payload;
+            } else {
+                status.textContent = "unrecognized schema tree pattern";
                 return;
             }
 
-            status.textContent = "searching mirrors...";
-            output.textContent = "";
-            searchBtn.disabled = true;
+            // step 1: bundle the continuous syllable items into clean line arrays using isLineEnding
+            let processedLines = [];
+            let currentLineWords = [];
 
-            for (const base of endpoints) {
-                const url = `${base}/v1/lyrics/get?title=${title}&artist=${artist}`;
-                try {
-                    status.textContent = `trying mirror: ${new URL(base).hostname}`;
-                    const response = await fetch(url);
-                    
-                    if (response.ok) {
-                        const data = await response.json();
-                        
-                        // completely skip processing lyric strings! 
-                        // dump the whole raw unedited data tree straight into the box.
-                        if (data) {
-                            output.textContent = JSON.stringify(data, null, 2);
-                            status.textContent = `found via ${new URL(base).hostname}`;
-                            searchBtn.disabled = false;
-                            return;
-                        }
-                    }
-                } catch (e) {
-                    console.error(`failed to fetch payload from ${base}:`, e);
+            rawLyricsArray.forEach(item => {
+                if (!item) return;
+                currentLineWords.push(item);
+                if (item.isLineEnding === 1) {
+                    processedLines.push(currentLineWords);
+                    currentLineWords = [];
                 }
+            });
+            // catch any leftover words if the file cuts off without an explicit line ending flag
+            if (currentLineWords.length > 0) {
+                processedLines.push(currentLineWords);
             }
 
-            status.textContent = "could not find raw data on any mirror";
-            output.textContent = "no results found";
-            searchBtn.disabled = false;
-        }
+            let syncedLyrics = "";
 
-        function copyToClipboard() {
-            const text = document.getElementById('output').textContent;
-            const status = document.getElementById('status');
-            
-            if (text && text !== "raw json payload will appear here" && text !== "no results found") {
-                navigator.clipboard.writeText(text).then(() => {
-                    const currentStatus = status.textContent;
-                    status.textContent = "copied to clipboard";
-                    setTimeout(() => {
-                        status.textContent = currentStatus;
-                    }, 2000);
-                }).catch(err => {
-                    status.textContent = "failed to copy text";
+            // step 2: process every line bundle according to your exact string preferences
+            processedLines.forEach(lineItems => {
+                if (lineItems.length === 0) return;
+
+                // separate normal main vocals from background elements inside this line block
+                let mainVocals = [];
+                let backgroundVocals = [];
+
+                lineItems.forEach(item => {
+                    const isBg = item.element && (item.element.isBackground || item.element.songPart === "Background");
+                    if (isBg) {
+                        backgroundVocals.push(item);
+                    } else {
+                        mainVocals.push(item);
+                    }
                 });
-            }
+
+                // process the main vocal track string block
+                if (mainVocals.length > 0) {
+                    const lineStartTime = mainVocals[0].time;
+                    syncedLyrics += `[${toLrcTimestamp(lineStartTime)}]`;
+
+                    if (useMultiperson) {
+                        const singer = (mainVocals[0].element && mainVocals[0].element.singer) ? mainVocals[0].element.singer : "v1";
+                        syncedLyrics += (singer === "v2" || singer === "voice2") ? "v2:" : "v1:";
+                    }
+
+                    mainVocals.forEach(syllable => {
+                        const start = toLrcTimestamp(syllable.time);
+                        const end = toLrcTimestamp(syllable.time + (syllable.duration || 0));
+                        
+                        syncedLyrics += `<${start}>${syllable.text}<${end}>`;
+                    });
+                }
+
+                // process the background vocal track configurations if they exist
+                if (backgroundVocals.length > 0) {
+                    const bgStartTime = backgroundVocals[0].time;
+                    
+                    if (bgStyle === "inline-tag") {
+                        syncedLyrics += "\n[bg:";
+                        backgroundVocals.forEach(syllable => {
+                            const start = toLrcTimestamp(syllable.time);
+                            const end = toLrcTimestamp(syllable.time + (syllable.duration || 0));
+                            syncedLyrics += `<${start}>${syllable.text}<${end}>`;
+                        });
+                        syncedLyrics += "]";
+                    } else {
+                        // choice format 2: [timestamp]{bg}<timestamp>text...
+                        syncedLyrics += `\n[${toLrcTimestamp(bgStartTime)}]{bg}`;
+                        backgroundVocals.forEach(syllable => {
+                            const start = toLrcTimestamp(syllable.time);
+                            const end = toLrcTimestamp(syllable.time + (syllable.duration || 0));
+                            syncedLyrics += `<${start}>${syllable.text}<${end}>`;
+                        });
+                    }
+                }
+
+                syncedLyrics += "\n";
+            });
+
+            output.textContent = syncedLyrics.trim() || "processing returned empty structural parameters";
+            status.textContent = "transformation process complete";
+
+        } catch (err) {
+            console.error(err);
+            status.textContent = "malformed text parsing error: " + err.message;
         }
+    }
+
+    function copyToClipboard(contentElementId, statusElementId) {
+        const text = document.getElementById(contentElementId).textContent;
+        const status = document.getElementById(statusElementId);
+        
+        const initialPlaceholders = ["raw json payload will appear here", "output is here", "no results found"];
+        if (text && !initialPlaceholders.includes(text)) {
+            navigator.clipboard.writeText(text).then(() => {
+                const currentStatus = status.textContent;
+                status.textContent = "copied to clipboard";
+                setTimeout(() => {
+                    status.textContent = currentStatus;
+                }, 2000);
+            }).catch(err => {
+                status.textContent = "failed to copy text";
+            });
+        }
+    }
     </script>
 </body>
 </html>

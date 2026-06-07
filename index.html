@@ -68,7 +68,6 @@
             border-radius: var(--md-shape-corner-medium) var(--md-shape-corner-medium) 0 0;
             cursor: pointer;
             transition: all 0.2s;
-            text-transform: lowercase;
         }
 
         .tab-btn.active {
@@ -102,7 +101,6 @@
             font-weight: 400;
             color: var(--md-sys-color-primary);
             letter-spacing: -0.03em;
-            text-transform: lowercase;
         }
 
         .input-group {
@@ -138,7 +136,6 @@
             flex-direction: column;
             gap: 8px;
             font-size: 0.95rem;
-            text-transform: lowercase;
         }
 
         .option-row {
@@ -174,7 +171,6 @@
             border-radius: var(--md-shape-corner-full);
             cursor: pointer;
             align-self: flex-start;
-            text-transform: lowercase;
         }
 
         button.btn-primary:disabled {
@@ -236,7 +232,7 @@
     <div class="container">
         <div class="tab-bar">
             <button class="tab-btn active" onclick="switchTabByIndex(0, this)">ttml grabbr</button>
-            <button class="tab-btn" onclick="switchTabByIndex(1, this)">insert hat theory</button>
+            <button class="tab-btn" onclick="switchTabByIndex(1, this)">elrc magic</button>
         </div>
 
         <div class="panel">
@@ -244,11 +240,11 @@
             <div id="grabbr-tab" class="tab-content active">
                 <h2>ehlrc</h2>
                 <div class="input-group">
-                    <input type="text" id="title" class="input-field" placeholder="the met gala where lady gaga wore the meat dress" autocomplete="off" value="the met gala where lady gaga wore the meat dress">
-                    <input type="text" id="artist" class="input-field" placeholder="artist" autocomplete="off" value="stan loona">
+                    <input type="text" id="title" class="input-field" placeholder="title" autocomplete="off">
+                    <input type="text" id="artist" class="input-field" placeholder="artist" autocomplete="off">
                 </div>
-                <button id="search-btn" class="btn-primary" onclick="fetchRawPayload()">end sombr</button>
-                <div id="grabbr-status" class="status-text">ready to manifest</div>
+                <button id="search-btn" class="btn-primary" onclick="fetchRawPayload()">get raw ttml</button>
+                <div id="grabbr-status" class="status-text"></div>
                 <div class="results-box">
                     <div class="action-bar">
                         <button class="icon-btn" onclick="copyToClipboard('grabbr-output', 'grabbr-status')">
@@ -260,39 +256,34 @@
             </div>
 
             <div id="magic-tab" class="tab-content">
-                <h2>insert hat theory</h2>
+                <h2>insert ttml</h2>
                 <div class="input-group">
-                    <textarea id="raw-json-input" class="input-field" placeholder="paste previous hat theory">zendaya = 7
-hat = 3
-holland = 7
-7+ 7 + 3 = 17
-17 letters in “dont forget to smile!”
-its all coming together</textarea>
+                    <textarea id="raw-json-input" class="input-field" placeholder="paste raw data payload json tree here..."></textarea>
                 </div>
                 
-                <h2>ehlrc format</h2>
+                <h2>elrc format</h2>
                 <div class="options-group">
                     <label class="option-row">
                         <input type="checkbox" id="opt-multiperson" checked>
-                        <span>multiperson tracking (v1/v2)</span>
+                        <span>multiperson</span>
                     </label>
                     <div>
                         <span style="color: var(--md-sys-color-on-surface-variant);">bg type</span>
                         <div class="radio-sub-group">
                             <label class="option-row">
                                 <input type="radio" name="bg-type" value="inline-tag" checked>
-                                <span>[bg:] inline style</span>
+                                <span>[bg:&lt;timestamp&gt;text]</span>
                             </label>
                             <label class="option-row">
                                 <input type="radio" name="bg-type" value="split-modifier">
-                                <span>{bg} suffix style</span>
+                                <span>[timestamp]{bg}&lt;timestamp&gt;text</span>
                             </label>
                         </div>
                     </div>
                 </div>
                 
-                <button class="btn-primary" onclick="processTtmlToEhlrc()">stan loona</button>
-                <div id="magic-status" class="status-text">waiting for data transformation...</div>
+                <button class="btn-primary" onclick="processTtmlToElrc()">get elrc</button>
+                <div id="magic-status" class="status-text"></div>
                 <div class="results-box">
                     <div class="action-bar">
                         <button class="icon-btn" onclick="copyToClipboard('magic-output', 'magic-status')">
@@ -345,11 +336,11 @@ its all coming together</textarea>
         const searchBtn = document.getElementById('search-btn');
 
         if (!title) {
-            status.textContent = "ERROR: INPUT CODE CONTAINER IS EMPTY";
+            status.textContent = "please enter a title";
             return;
         }
 
-        status.textContent = "analyzing the zendaya hat theory...";
+        status.textContent = "searching mirrors...";
         output.textContent = "";
         searchBtn.disabled = true;
 
@@ -380,15 +371,15 @@ its all coming together</textarea>
         searchBtn.disabled = false;
     }
 
-    function processTtmlToEhlrc() {
+    function processTtmlToElrc() {
         let jsonText = document.getElementById('raw-json-input').value.trim();
         const output = document.getElementById('magic-output');
         const status = document.getElementById('magic-status');
         const useMultiperson = document.getElementById('opt-multiperson').checked;
         const bgStyle = document.querySelector('input[name="bg-type"]:checked').value;
 
-        if (!jsonText || jsonText.startsWith("zendaya = 7")) {
-            status.textContent = "ERROR: INPUT CONTAINER CONTAINS CONSPIRACY THEORIES, NOT JSON";
+        if (!jsonText) {
+            status.textContent = "error: input code container is empty";
             return;
         }
 
@@ -406,7 +397,7 @@ its all coming together</textarea>
                 payload = JSON.parse(repairedText);
                 status.textContent = "recovered incomplete layout safely!";
             } catch (recoveryErr) {
-                status.textContent = "MALFORMED TEXT PARSING ERROR: " + err.message;
+                status.textContent = "malformed text parsing error: " + err.message;
                 return;
             }
         }
@@ -418,7 +409,7 @@ its all coming together</textarea>
             } else if (Array.isArray(payload)) {
                 rawLyricsArray = payload;
             } else {
-                status.textContent = "UNRECOGNIZED SCHEMA TREE PATTERN";
+                status.textContent = "unrecognized schema tree pattern";
                 return;
             }
 
@@ -481,6 +472,7 @@ its all coming together</textarea>
                     if (bgStyle === "inline-tag") {
                         syncedLyrics += "\n[bg:";
                         backgroundVocals.forEach(syllable => {
+                            // clean up any embedded parentheses or brackets for inline style
                             let cleanText = syllable.text.replace(/[\(\)\[\]]/g, '');
                             syncedLyrics += `<${toLrcTimestamp(syllable.time)}>${cleanText}<${toLrcTimestamp(syllable.time + (syllable.duration || 0))}>`;
                         });
@@ -500,7 +492,7 @@ its all coming together</textarea>
                 status.textContent = "transformation process complete";
             }
         } catch (err) {
-            status.textContent = "PROCESSING ERROR: " + err.message;
+            status.textContent = "processing error: " + err.message;
         }
     }
 

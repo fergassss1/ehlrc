@@ -244,12 +244,27 @@
                     if (response.ok) {
                         const data = await response.json();
                         
-                        // Handles standard response variants (plain string, lyrics array, or object properties)
-                        if (data && data.lyrics) {
-                            output.textContent = Array.isArray(data.lyrics) ? data.lyrics.join('\n') : data.lyrics;
-                            status.textContent = `found via ${new URL(base).hostname}`;
-                            searchBtn.disabled = false;
-                            return;
+if (data && data.lyrics) {
+    if (Array.isArray(data.lyrics)) {
+        // check if the first item is an object instead of a string
+        if (typeof data.lyrics[0] === 'object' && data.lyrics[0] !== null) {
+            // map through and extract the text line (handles .text, .line, or .words)
+            output.textContent = data.lyrics
+                .map(item => item.text || item.line || item.words || JSON.stringify(item))
+                .join('\n');
+        } else {
+            // standard array of strings
+            output.textContent = data.lyrics.join('\n');
+        }
+    } else {
+        // plain text string
+        output.textContent = data.lyrics;
+    }
+    
+    status.textContent = `found via ${new URL(base).hostname}`;
+    searchBtn.disabled = false;
+    return;
+}
                         }
                     }
                 } catch (e) {

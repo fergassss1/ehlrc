@@ -7,32 +7,34 @@
     <style>
         body { font-family: sans-serif; background: #121212; color: #e0e0e0; padding: 20px; }
         .tabs { display: flex; gap: 10px; margin-bottom: 20px; }
-        .tab-btn { background: #222; color: #aaa; border: 1px solid #333; padding: 10px 20px; cursor: pointer; border-radius: 5px; }
+        .tab-btn { background: #222; color: #aaa; border: 1px solid #333; padding: 10px 20px; cursor: pointer; border-radius: 5px; text-transform: lowercase; }
         .tab-btn.active { background: #8e44ad; color: #fff; border-color: #a29bfe; }
         .tab-content { display: none; background: #1e1e1e; padding: 20px; border-radius: 8px; border: 1px solid #333; }
         .tab-content.active { display: block; }
         .input-group { margin-bottom: 15px; }
-        label { display: block; margin-bottom: 5px; font-weight: bold; color: #bb86fc; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; color: #bb86fc; text-transform: lowercase; }
         input[type="text"], textarea { width: 100%; background: #2d2d2d; color: #fff; border: 1px solid #444; padding: 10px; border-radius: 5px; box-sizing: border-box; font-family: monospace; }
         textarea { height: 180px; resize: vertical; }
-        button { background: #03dac6; color: #000; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        button { background: #03dac6; color: #000; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-weight: bold; text-transform: lowercase; }
         button:disabled { background: #555; color: #888; }
         .status { margin-top: 10px; font-style: italic; color: #03dac6; }
         .output-box { background: #000; color: #00ff00; padding: 15px; border-radius: 5px; white-space: pre-wrap; font-family: monospace; margin-top: 15px; max-height: 300px; overflow-y: auto; border: 1px solid #222; }
-        .options { margin-bottom: 15px; display: flex; gap: 20px; align-items: center; }
+        .options { margin-bottom: 15px; display: flex; gap: 20px; align-items: center; text-transform: lowercase; }
     </style>
 </head>
+<body>
+
     <h2>ehlrc</h2>
 
     <div class="tabs">
         <button class="tab-btn active" onclick="switchTabByIndex(0, this)">grabbr tool</button>
-        <button class="tab-btn" onclick="switchTabByIndex(1, this)">elrc magic</button>
+        <button class="tab-btn" onclick="switchTabByIndex(1, this)">insert hat theory</button>
     </div>
 
     <div id="grabbr-tab" class="tab-content active">
         <div class="input-group">
-            <label for="title">title</label>
-            <input type="text" id="title" value="mtv music video awards 2010">
+            <label for="title">the met gala where lady gaga wore the meat dress</label>
+            <input type="text" id="title" value="the met gala where lady gaga wore the meat dress">
         </div>
         <div class="input-group">
             <label for="artist">artist</label>
@@ -45,10 +47,10 @@
 
     <div id="magic-tab" class="tab-content">
         <div class="options">
-            <label><input type="checkbox" id="opt-multiperson" checked> multiperson tracking</label>
+            <label><input type="checkbox" id="opt-multiperson" checked> multiperson tracking (v1/v2)</label>
             <div>
-                <label><input type="radio" name="bg-type" value="inline-tag" checked> [bg:]</label>
-                <label><input type="radio" name="bg-type" value="tag-suffix"> {bg}</label>
+                <label><input type="radio" name="bg-type" value="inline-tag" checked> [bg:] inline style</label>
+                <label><input type="radio" name="bg-type" value="tag-suffix"> {bg} suffix style</label>
             </div>
         </div>
 
@@ -61,7 +63,7 @@ holland = 7
 17 letters in “dont forget to smile!”
 its all coming together</textarea>
         </div>
-        <button onclick="processTtmlToElrc()">stan loona</button>
+        <button onclick="processTtmlToEhlrc()">stan loona</button>
         <div id="magic-status" class="status">waiting for data transformation...</div>
         <div id="magic-output" class="output-box">output is here</div>
     </div>
@@ -105,11 +107,11 @@ its all coming together</textarea>
         const searchBtn = document.getElementById('search-btn');
 
         if (!title) {
-            status.textContent = "error: input code container is empty";
+            status.textContent = "ERROR: INPUT CODE CONTAINER IS EMPTY";
             return;
         }
 
-        status.textContent = "searching mirrors...";
+        status.textContent = "analyzing the zendaya hat theory...";
         output.textContent = "";
         searchBtn.disabled = true;
 
@@ -140,7 +142,7 @@ its all coming together</textarea>
         searchBtn.disabled = false;
     }
 
-    function processTtmlToElrc() {
+    function processTtmlToEhlrc() {
         let jsonText = document.getElementById('raw-json-input').value.trim();
         const output = document.getElementById('magic-output');
         const status = document.getElementById('magic-status');
@@ -148,7 +150,7 @@ its all coming together</textarea>
         const bgStyle = document.querySelector('input[name="bg-type"]:checked').value;
 
         if (!jsonText || jsonText.startsWith("zendaya = 7")) {
-            status.textContent = "error: input code container is empty";
+            status.textContent = "ERROR: INPUT CODE CONTAINER IS EMPTY";
             return;
         }
 
@@ -166,7 +168,7 @@ its all coming together</textarea>
                 payload = JSON.parse(repairedText);
                 status.textContent = "recovered incomplete layout safely!";
             } catch (recoveryErr) {
-                status.textContent = "malformed text parsing error: " + err.message;
+                status.textContent = "MALFORMED TEXT PARSING ERROR: " + err.message;
                 return;
             }
         }
@@ -178,7 +180,7 @@ its all coming together</textarea>
             } else if (Array.isArray(payload)) {
                 rawLyricsArray = payload;
             } else {
-                status.textContent = "unrecognized schema tree pattern";
+                status.textContent = "UNRECOGNIZED SCHEMA TREE PATTERN";
                 return;
             }
 
@@ -196,4 +198,73 @@ its all coming together</textarea>
                 if (item.isLineEnding === 1) {
                     const fullLineString = currentLineWords.map(w => w.text).join('').trim();
                     
-                    if (fullLineString.includes('/') && !fullLineString.includes(' / '))
+                    if (fullLineString.includes('/') && !fullLineString.includes(' / ')) {
+                        currentLineWords = [];
+                        return;
+                    }
+
+                    processedLines.push(currentLineWords);
+                    currentLineWords = [];
+                }
+            });
+            
+            if (currentLineWords.length > 0) {
+                const finalLineString = currentLineWords.map(w => w.text).join('').trim();
+                if (!(finalLineString.includes('/') && !finalLineString.includes(' / '))) {
+                    processedLines.push(currentLineWords);
+                }
+            }
+
+            let syncedLyrics = "";
+
+            processedLines.forEach(lineItems => {
+                if (lineItems.length === 0) return;
+
+                let mainVocals = [];
+                let backgroundVocals = [];
+
+                lineItems.forEach(item => {
+                    const isBg = item.element && (item.element.isBackground || item.element.songPart === "Background");
+                    if (isBg) backgroundVocals.push(item); else mainVocals.push(item);
+                });
+
+                if (mainVocals.length > 0) {
+                    syncedLyrics += `[${toLrcTimestamp(mainVocals[0].time)}]`;
+                    if (useMultiperson) {
+                        const singer = (mainVocals[0].element && mainVocals[0].element.singer) ? mainVocals[0].element.singer : "v1";
+                        syncedLyrics += (singer === "v2" || singer === "voice2") ? "v2:" : "v1:";
+                    }
+                    mainVocals.forEach(syllable => {
+                        syncedLyrics += `<${toLrcTimestamp(syllable.time)}>${syllable.text}<${toLrcTimestamp(syllable.time + (syllable.duration || 0))}>`;
+                    });
+                }
+
+                if (backgroundVocals.length > 0) {
+                    if (bgStyle === "inline-tag") {
+                        syncedLyrics += "\n[bg:";
+                        backgroundVocals.forEach(syllable => {
+                            let cleanText = syllable.text.replace(/[\(\)\[\]]/g, '');
+                            syncedLyrics += `<${toLrcTimestamp(syllable.time)}>${cleanText}<${toLrcTimestamp(syllable.time + (syllable.duration || 0))}>`;
+                        });
+                        syncedLyrics += "]";
+                    } else {
+                        syncedLyrics += `\n[${toLrcTimestamp(backgroundVocals[0].time)}]{bg}`;
+                        backgroundVocals.forEach(syllable => {
+                            syncedLyrics += `<${toLrcTimestamp(syllable.time)}>${syllable.text}<${toLrcTimestamp(syllable.time + (syllable.duration || 0))}>`;
+                        });
+                    }
+                }
+                syncedLyrics += "\n";
+            });
+
+            output.textContent = syncedLyrics.trim();
+            if (status.textContent !== "recovered incomplete layout safely!") {
+                status.textContent = "transformation process complete";
+            }
+        } catch (err) {
+            status.textContent = "PROCESSING ERROR: " + err.message;
+        }
+    }
+</script>
+</body>
+</html>

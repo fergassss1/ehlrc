@@ -205,101 +205,125 @@
         </div>
     </div>
 
-    <script>
-        // added your working mirror to the list
-        const endpoints = [
-            "https://lyrics.geeked.wtf",
-            "https://lyricsplus.prjktla.my.id",
-            "https://lyricsplus.atomix.one",
-            "https://lyricsplus.binimum.org",
-            "https://lyricsplus.prjktla.workers.dev",
-            "https://lyricsplus-seven.vercel.app"
-        ];
+<script>
+    const endpoints = [
+        "https://lyrics.geeked.wtf",
+        "https://lyricsplus.prjktla.my.id",
+        "https://lyricsplus.atomix.one",
+        "https://lyricsplus.binimum.org",
+        "https://lyricsplus.prjktla.workers.dev",
+        "https://lyricsplus-seven.vercel.app"
+    ];
 
-        async function fetchLyrics() {
-            const title = encodeURIComponent(document.getElementById('title').value.trim());
-            const artist = encodeURIComponent(document.getElementById('artist').value.trim());
-            const output = document.getElementById('output');
-            const status = document.getElementById('status');
-            const searchBtn = document.getElementById('search-btn');
+    // helper function to turn milliseconds or seconds into a clean [mm:ss.xx] timestamp
+    function formatTime(timeInput) {
+        if (timeInput === undefined || timeInput === null) return "";
+        let seconds = parseFloat(timeInput);
+        // if the api gives huge numbers, it is in milliseconds, so convert to seconds
+        if (seconds > 10000) {
+            seconds = seconds / 1000;
+        }
+        if (isNaN(seconds)) return "";
+        
+        const mins = Math.floor(seconds / 60);
+        const secs = Math.floor(seconds % 60);
+        const ms = Math.floor((seconds % 1) * 100);
+        
+        const strMins = String(mins).padStart(2, '0');
+        const strSecs = String(secs).padStart(2, '0');
+        const strMs = String(ms).padStart(2, '0');
+        
+        return `[${strMins}:${strSecs}.${strMs}]`;
+    }
 
-            if (!title) {
-                status.textContent = "please enter a title";
-                return;
-            }
+    async function fetchLyrics() {
+        const title = encodeURIComponent(document.getElementById('title').value.trim());
+        const artist = encodeURIComponent(document.getElementById('artist').value.trim());
+        const output = document.getElementById('output');
+        const status = document.getElementById('status');
+        const searchBtn = document.getElementById('search-btn');
 
-            status.textContent = "searching mirrors...";
-            output.textContent = "";
-            searchBtn.disabled = true;
+        if (!title) {
+            status.textContent = "please enter a title";
+            return;
+        }
 
-            for (const base of endpoints) {
-                // trying /v1/lyrics/get path to accurately match your working endpoint
-                const url = `${base}/v1/lyrics/get?title=${title}&artist=${artist}`;
-                try {
-                    status.textContent = `trying mirror: ${new URL(base).hostname}`;
-                    const response = await fetch(url);
+        status.textContent = "searching mirrors...";
+        output.textContent = "";
+        searchBtn.disabled = true;
+
+        for (const base of endpoints) {
+            const url = `${base}/v1/lyrics/get?title=${title}&artist=${artist}`;
+            try {
+                status.textContent = `trying mirror: ${new URL(base).hostname}`;
+                const response = await fetch(url);
+                
+                if (response.ok) {
+                    const data = await response.json();
                     
-                    if (response.ok) {
-                        const data = await response.json();
-                        
-                        if (data && data.lyrics) {
-                            let formattedLyrics = "";
+                    if (data && data.lyrics) {
+                        let formattedLyrics = "";
 
-                            if (Array.isArray(data.lyrics)) {
-                                formattedLyrics = data.lyrics.map(line => {
-                                    // scenario a: it's a deep word-by-word object containing a nested words array
-                                    if (line && typeof line === 'object' && Array.isArray(line.words)) {
-                                        return line.words.map(w => w.string || w.text || '').join(' ');
-                                    }
-                                    // scenario b: it's a line object with direct text/line strings
-                                    if (line && typeof line === 'object') {
-                                        return line.text || line.line || line.string || JSON.stringify(line);
-                                    }
-                                    // scenario c: it's a basic array of plain text lines
-                                    return line;
-                                }).join('\n');
-                            } else if (typeof data.lyrics === 'object') {
-                                // safety net: if the top-level lyrics field itself is a raw unparsed block object
-                                formattedLyrics = JSON.stringify(data.lyrics, null, 2);
-                            } else {
-                                // scenario d: plain simple string
-                                formattedLyrics = data.lyrics;
-                            }
+                        if (Array.isArray(data.lyrics)) {
+                            formattedLyrics = data.lyrics.map(line => {
+                                // case a: word-by-word data with deep arrays and internal timestamps
+                                if (line && typeof line === 'object' && Array.isArray(line.words)) {
+                                    const lineStart = formatTime(line.startTime || line.time);
+                                    const wordsText = line.words.map(w => {
+                                        // keeping word specific data if needed, or just standard string
+                                        return w.string || w.text || '';
+                                    }).join(' ');
+                                    return `${lineStart} ${wordsText}`.trim();
+                                }
+                                // case b: line object with direct text and top-level timestamp
+                                if (line && typeof line === 'object') {
+                                    const lineStart = formatTime(line.startTime || line.time);
+                                    const txt = line.text || line.line || line.string || JSON.stringify(line);
+                                    return `${lineStart} ${txt}`.trim();
+                                }
+                                // case c: simple text lines
+                                return line;
+                            }).join('\n');
+                        } else if (typeof data.lyrics === 'object') {
+                            formattedLyrics = JSON.stringify(data.lyrics, null, 2);
+                        } else {
+                            formattedLyrics = data.lyrics;
+                        }
 
-                            if (formattedLyrics.trim()) {
-                                output.textContent = formattedLyrics;
-                                status.textContent = `found via ${new URL(base).hostname}`;
-                                searchBtn.disabled = false;
-                                return;
-                            }
+                        if (formattedLyrics.trim()) {
+                            output.textContent = formattedLyrics;
+                            status.textContent = `found via ${new URL(base).hostname}`;
+                            searchBtn.disabled = false;
+                            return;
                         }
                     }
-                } catch (e) {
-                    console.error(`failed to fetch from ${base}:`, e);
                 }
-            }
-
-            status.textContent = "could not find lyrics on any mirror";
-            output.textContent = "no results found";
-            searchBtn.disabled = false;
-        }
-
-        function copyToClipboard() {
-            const text = document.getElementById('output').textContent;
-            const status = document.getElementById('status');
-            
-            if (text && text !== "lyrics will appear here" && text !== "no results found") {
-                navigator.clipboard.writeText(text).then(() => {
-                    const currentStatus = status.textContent;
-                    status.textContent = "copied to clipboard";
-                    setTimeout(() => {
-                        status.textContent = currentStatus;
-                    }, 2000);
-                }).catch(err => {
-                    status.textContent = "failed to copy text";
-                });
+            } catch (e) {
+                console.error(`failed to fetch from ${base}:`, e);
             }
         }
-    </script>
+
+        status.textContent = "could not find lyrics on any mirror";
+        output.textContent = "no results found";
+        searchBtn.disabled = false;
+    }
+
+    function copyToClipboard() {
+        const text = document.getElementById('output').textContent;
+        const status = document.getElementById('status');
+        
+        if (text && text !== "lyrics will appear here" && text !== "no results found") {
+            navigator.clipboard.writeText(text).then(() => {
+                const currentStatus = status.textContent;
+                status.textContent = "copied to clipboard";
+                setTimeout(() => {
+                    status.textContent = currentStatus;
+                }, 2000);
+            }).catch(err => {
+                status.textContent = "failed to copy text";
+            });
+        }
+    }
+</script>
 </body>
 </html>

@@ -356,6 +356,7 @@
                         output.textContent = formatted;
                         status.textContent = `found via ${new URL(base).hostname}`;
                         searchBtn.disabled = false;
+                        
                         document.getElementById('raw-json-input').value = formatted;
                         return;
                     }
@@ -471,7 +472,9 @@
                     if (bgStyle === "inline-tag") {
                         syncedLyrics += "\n[bg:";
                         backgroundVocals.forEach(syllable => {
-                            syncedLyrics += `<${toLrcTimestamp(syllable.time)}>${syllable.text}<${toLrcTimestamp(syllable.time + (syllable.duration || 0))}>`;
+                            // clean up any embedded parentheses or brackets for inline style
+                            let cleanText = syllable.text.replace(/[\(\)\[\]]/g, '');
+                            syncedLyrics += `<${toLrcTimestamp(syllable.time)}>${cleanText}<${toLrcTimestamp(syllable.time + (syllable.duration || 0))}>`;
                         });
                         syncedLyrics += "]";
                     } else {

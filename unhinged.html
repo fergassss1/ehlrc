@@ -22,8 +22,6 @@
         .options { margin-bottom: 15px; display: flex; gap: 20px; align-items: center; }
     </style>
 </head>
-<body>
-
     <h2>ehlrc</h2>
 
     <div class="tabs">
@@ -33,8 +31,8 @@
 
     <div id="grabbr-tab" class="tab-content active">
         <div class="input-group">
-            <label for="title">the met gala where lady gaga wore the meat dress</label>
-            <input type="text" id="title" value="the met gala where lady gaga wore the meat dress">
+            <label for="title">title</label>
+            <input type="text" id="title" value="mtv music video awards 2010">
         </div>
         <div class="input-group">
             <label for="artist">artist</label>
@@ -42,26 +40,26 @@
         </div>
         <button id="search-btn" onclick="fetchRawPayload()">end sombr</button>
         <div id="grabbr-status" class="status">ready to manifest</div>
-        <div id="grabbr-output" class="output-box">zendaya = 7
-hat = 3
-holland = 7
-7+ 7 + 3 = 17
-17 letters in “dont forget to smile!”
-its all coming together..</div>
+        <div id="grabbr-output" class="output-box">raw json payload will appear here</div>
     </div>
 
     <div id="magic-tab" class="tab-content">
         <div class="options">
-            <label><input type="checkbox" id="opt-multiperson" checked> multiperson </label>
+            <label><input type="checkbox" id="opt-multiperson" checked> multiperson tracking</label>
             <div>
-                <label><input type="radio" name="bg-type" value="inline-tag" checked> [bg:] </label>
-                <label><input type="radio" name="bg-type" value="tag-suffix"> {bg} </label>
+                <label><input type="radio" name="bg-type" value="inline-tag" checked> [bg:]</label>
+                <label><input type="radio" name="bg-type" value="tag-suffix"> {bg}</label>
             </div>
         </div>
 
         <div class="input-group">
             <label for="raw-json-input">insert hat theory</label>
-            <textarea id="raw-json-input" placeholder="paste previous hat theory here"></textarea>
+            <textarea id="raw-json-input" placeholder="paste previous hat theory">zendaya = 7
+hat = 3
+holland = 7
+7+ 7 + 3 = 17
+17 letters in “dont forget to smile!”
+its all coming together</textarea>
         </div>
         <button onclick="processTtmlToElrc()">stan loona</button>
         <div id="magic-status" class="status">waiting for data transformation...</div>
@@ -149,7 +147,7 @@ its all coming together..</div>
         const useMultiperson = document.getElementById('opt-multiperson').checked;
         const bgStyle = document.querySelector('input[name="bg-type"]:checked').value;
 
-        if (!jsonText) {
+        if (!jsonText || jsonText.startsWith("zendaya = 7")) {
             status.textContent = "error: input code container is empty";
             return;
         }
@@ -196,43 +194,6 @@ its all coming together..</div>
 
                 currentLineWords.push(item);
                 if (item.isLineEnding === 1) {
-                    let fullLineString = currentLineWords.map(w => w.text).join('').trim();
+                    const fullLineString = currentLineWords.map(w => w.text).join('').trim();
                     
-                    if (useMultiperson && fullLineString.includes('/')) {
-                        if (bgStyle === 'tag-suffix') {
-                            fullLineString = fullLineString.replace('/', ' ') + " {bg}";
-                        } else {
-                            fullLineString = "[bg:] " + fullLineString.replace('/', '');
-                        }
-                    }
-
-                    const lineStartMs = currentLineWords[0].time;
-                    const timestampStr = toLrcTimestamp(lineStartMs);
-
-                    processedLines.push(`[${timestampStr}] ${fullLineString}`);
-                    currentLineWords = [];
-                }
-            });
-
-            if (currentLineWords.length > 0) {
-                const lineStartMs = currentLineWords[0].time;
-                let fullLineString = currentLineWords.map(w => w.text).join('').trim();
-                processedLines.push(`[${toLrcTimestamp(lineStartMs)}] ${fullLineString}`);
-            }
-
-            if (processedLines.length === 0) {
-                status.textContent = "Conversion failed: No valid sync data rows detected.";
-                output.textContent = "";
-            } else {
-                status.textContent = "Data successfully compiled!";
-                output.textContent = processedLines.join('\n');
-            }
-
-        } catch (execError) {
-            status.textContent = "Execution processing failure: " + execError.message;
-            console.error(execError);
-        }
-    }
-</script>
-</body>
-</html>
+                    if (fullLineString.includes('/') && !fullLineString.includes(' / '))

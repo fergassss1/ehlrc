@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ehlrc</title>
+    <style>
+        body { font-family: sans-serif; background: #121212; color: #e0e0e0; padding: 20px; }
+        .tabs { display: flex; gap: 10px; margin-bottom: 20px; }
+        .tab-btn { background: #222; color: #aaa; border: 1px solid #333; padding: 10px 20px; cursor: pointer; border-radius: 5px; }
+        .tab-btn.active { background: #8e44ad; color: #fff; border-color: #a29bfe; }
+        .tab-content { display: none; background: #1e1e1e; padding: 20px; border-radius: 8px; border: 1px solid #333; }
+        .tab-content.active { display: block; }
+        .input-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; color: #bb86fc; }
+        input[type="text"], textarea { width: 100%; background: #2d2d2d; color: #fff; border: 1px solid #444; padding: 10px; border-radius: 5px; box-sizing: border-box; font-family: monospace; }
+        textarea { height: 180px; resize: vertical; }
+        button { background: #03dac6; color: #000; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        button:disabled { background: #555; color: #888; }
+        .status { margin-top: 10px; font-style: italic; color: #03dac6; }
+        .output-box { background: #000; color: #00ff00; padding: 15px; border-radius: 5px; white-space: pre-wrap; font-family: monospace; margin-top: 15px; max-height: 300px; overflow-y: auto; border: 1px solid #222; }
+        .options { margin-bottom: 15px; display: flex; gap: 20px; align-items: center; }
+    </style>
+</head>
+<body>
+
+    <h2>ehlrc</h2>
+
+    <div class="tabs">
+        <button class="tab-btn active" onclick="switchTabByIndex(0, this)">grabbr tool</button>
+        <button class="tab-btn" onclick="switchTabByIndex(1, this)">elrc magic</button>
+    </div>
+
+    <div id="grabbr-tab" class="tab-content active">
+        <div class="input-group">
+            <label for="title">the met gala where lady gaga wore the meat dress</label>
+            <input type="text" id="title" value="the met gala where lady gaga wore the meat dress">
+        </div>
+        <div class="input-group">
+            <label for="artist">artist</label>
+            <input type="text" id="artist" value="stan loona">
+        </div>
+        <button id="search-btn" onclick="fetchRawPayload()">end sombr</button>
+        <div id="grabbr-status" class="status">ready to manifest</div>
+        <div id="grabbr-output" class="output-box">zendaya = 7
+hat = 3
+holland = 7
+7+ 7 + 3 = 17
+17 letters in “dont forget to smile!”
+its all coming together..</div>
+    </div>
+
+    <div id="magic-tab" class="tab-content">
+        <div class="options">
+            <label><input type="checkbox" id="opt-multiperson" checked> multiperson </label>
+            <div>
+                <label><input type="radio" name="bg-type" value="inline-tag" checked> [bg:] </label>
+                <label><input type="radio" name="bg-type" value="tag-suffix"> {bg} </label>
+            </div>
+        </div>
+
+        <div class="input-group">
+            <label for="raw-json-input">insert hat theory</label>
+            <textarea id="raw-json-input" placeholder="paste previous hat theory here"></textarea>
+        </div>
+        <button onclick="processTtmlToElrc()">stan loona</button>
+        <div id="magic-status" class="status">waiting for data transformation...</div>
+        <div id="magic-output" class="output-box">output is here</div>
+    </div>
+
+<script>
+    const endpoints = [
+        "https://lyrics.geeked.wtf",
+        "https://lyricsplus.prjktla.my.id",
+        "https://lyricsplus.atomix.one",
+        "https://lyricsplus.binimum.org",
+        "https://lyricsplus.prjktla.workers.dev",
+        "https://lyricsplus-seven.vercel.app"
+    ];
+
+    function switchTabByIndex(idx, btnElement) {
+        document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        
+        const targets = ['grabbr-tab', 'magic-tab'];
+        document.getElementById(targets[idx]).classList.add('active');
+        btnElement.classList.add('active');
+    }
+
+    function toLrcTimestamp(msInput) {
+        if (msInput === undefined || msInput === null) return "00:00.000";
+        let totalSeconds = parseFloat(msInput) / 1000;
+        if (isNaN(totalSeconds) || totalSeconds < 0) totalSeconds = 0;
+        
+        const mins = Math.floor(totalSeconds / 60);
+        const secs = Math.floor(totalSeconds % 60);
+        const ms = Math.floor((totalSeconds % 1) * 1000);
+        
+        return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}.${String(ms).padStart(3, '0')}`;
+    }
+
+    async function fetchRawPayload() {
+        const title = encodeURIComponent(document.getElementById('title').value.trim());
+        const artist = encodeURIComponent(document.getElementById('artist').value.trim());
+        const output = document.getElementById('grabbr-output');
+        const status = document.getElementById('grabbr-status');
+        const searchBtn = document.getElementById('search-btn');
+
+        if (!title) {
+            status.textContent = "error: input code container is empty";
+            return;
+        }
+
+        status.textContent = "searching mirrors...";
+        output.textContent = "";
+        searchBtn.disabled = true;
+
+        for (const base of endpoints) {
+            const url = `${base}/v1/lyrics/get?title=${title}&artist=${artist}`;
+            try {
+                status.textContent = `trying mirror: ${new URL(base).hostname}`;
+                const response = await fetch(url);
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data) {
+                        const formatted = JSON.stringify(data, null, 2);
+                        output.textContent = formatted;
+                        status.textContent = `found via ${new URL(base).hostname}`;
+                        searchBtn.disabled = false;
+                        
+                        document.getElementById('raw-json-input').value = formatted;
+                        return;
+                    }
+                }
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        status.textContent = "could not find raw data on any mirror";
+        output.textContent = "no results found";
+        searchBtn.disabled = false;
+    }
+
+    function processTtmlToElrc() {
+        let jsonText = document.getElementById('raw-json-input').value.trim();
+        const output = document.getElementById('magic-output');
+        const status = document.getElementById('magic-status');
+        const useMultiperson = document.getElementById('opt-multiperson').checked;
+        const bgStyle = document.querySelector('input[name="bg-type"]:checked').value;
+
+        if (!jsonText) {
+            status.textContent = "error: input code container is empty";
+            return;
+        }
+
+        let payload;
+        try {
+            payload = JSON.parse(jsonText);
+        } catch (err) {
+            try {
+                let repairedText = jsonText.replace(/,\s*\"?[a-zA-Z0-9_\-]*\"?\s*:\s*$/g, '').trim();
+                if (repairedText.endsWith('{') || repairedText.endsWith(',')) {
+                    repairedText = repairedText.substring(0, repairedText.length - 1).trim();
+                }
+                if (!repairedText.includes(']')) repairedText += ']';
+                if (!repairedText.includes('}')) repairedText += '}';
+                payload = JSON.parse(repairedText);
+                status.textContent = "recovered incomplete layout safely!";
+            } catch (recoveryErr) {
+                status.textContent = "malformed text parsing error: " + err.message;
+                return;
+            }
+        }
+
+        try {
+            let rawLyricsArray = [];
+            if (payload.lyrics && Array.isArray(payload.lyrics)) {
+                rawLyricsArray = payload.lyrics;
+            } else if (Array.isArray(payload)) {
+                rawLyricsArray = payload;
+            } else {
+                status.textContent = "unrecognized schema tree pattern";
+                return;
+            }
+
+            let processedLines = [];
+            let currentLineWords = [];
+
+            rawLyricsArray.forEach(item => {
+                if (!item) return;
+                
+                if (item.time === undefined || item.time === null || !item.text) {
+                    return; 
+                }
+
+                currentLineWords.push(item);
+                if (item.isLineEnding === 1) {
+                    let fullLineString = currentLineWords.map(w => w.text).join('').trim();
+                    
+                    if (useMultiperson && fullLineString.includes('/')) {
+                        if (bgStyle === 'tag-suffix') {
+                            fullLineString = fullLineString.replace('/', ' ') + " {bg}";
+                        } else {
+                            fullLineString = "[bg:] " + fullLineString.replace('/', '');
+                        }
+                    }
+
+                    const lineStartMs = currentLineWords[0].time;
+                    const timestampStr = toLrcTimestamp(lineStartMs);
+
+                    processedLines.push(`[${timestampStr}] ${fullLineString}`);
+                    currentLineWords = [];
+                }
+            });
+
+            if (currentLineWords.length > 0) {
+                const lineStartMs = currentLineWords[0].time;
+                let fullLineString = currentLineWords.map(w => w.text).join('').trim();
+                processedLines.push(`[${toLrcTimestamp(lineStartMs)}] ${fullLineString}`);
+            }
+
+            if (processedLines.length === 0) {
+                status.textContent = "Conversion failed: No valid sync data rows detected.";
+                output.textContent = "";
+            } else {
+                status.textContent = "Data successfully compiled!";
+                output.textContent = processedLines.join('\n');
+            }
+
+        } catch (execError) {
+            status.textContent = "Execution processing failure: " + execError.message;
+            console.error(execError);
+        }
+    }
+</script>
+</body>
+</html>

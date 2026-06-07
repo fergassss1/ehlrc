@@ -297,197 +297,215 @@
         </div>
     </div>
 
-    <script>
-        const endpoints = [
-            "https://lyrics.geeked.wtf",
-            "https://lyricsplus.prjktla.my.id",
-            "https://lyricsplus.atomix.one",
-            "https://lyricsplus.binimum.org",
-            "https://lyricsplus.prjktla.workers.dev",
-            "https://lyricsplus-seven.vercel.app"
-        ];
+<script>
+    const endpoints = [
+        "https://lyrics.geeked.wtf",
+        "https://lyricsplus.prjktla.my.id",
+        "https://lyricsplus.atomix.one",
+        "https://lyricsplus.binimum.org",
+        "https://lyricsplus.prjktla.workers.dev",
+        "https://lyricsplus-seven.vercel.app"
+    ];
 
-        function switchTabByIndex(idx, btnElement) {
-            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-            
-            const targets = ['grabbr-tab', 'magic-tab'];
-            document.getElementById(targets[idx]).classList.add('active');
-            btnElement.classList.add('active');
+    function switchTabByIndex(idx, btnElement) {
+        document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        
+        const targets = ['grabbr-tab', 'magic-tab'];
+        document.getElementById(targets[idx]).classList.add('active');
+        btnElement.classList.add('active');
+    }
+
+    function toLrcTimestamp(msInput) {
+        if (msInput === undefined || msInput === null) return "00:00.000";
+        let totalSeconds = parseFloat(msInput) / 1000;
+        if (isNaN(totalSeconds) || totalSeconds < 0) totalSeconds = 0;
+        
+        const mins = Math.floor(totalSeconds / 60);
+        const secs = Math.floor(totalSeconds % 60);
+        const ms = Math.floor((totalSeconds % 1) * 1000);
+        
+        return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}.${String(ms).padStart(3, '0')}`;
+    }
+
+    async function fetchRawPayload() {
+        const title = encodeURIComponent(document.getElementById('title').value.trim());
+        const artist = encodeURIComponent(document.getElementById('artist').value.trim());
+        const output = document.getElementById('grabbr-output');
+        const status = document.getElementById('grabbr-status');
+        const searchBtn = document.getElementById('search-btn');
+
+        if (!title) {
+            status.textContent = "please enter a title";
+            return;
         }
 
-        function toLrcTimestamp(msInput) {
-            if (msInput === undefined || msInput === null) return "00:00.000";
-            let totalSeconds = parseFloat(msInput) / 1000;
-            if (isNaN(totalSeconds) || totalSeconds < 0) totalSeconds = 0;
-            
-            const mins = Math.floor(totalSeconds / 60);
-            const secs = Math.floor(totalSeconds % 60);
-            const ms = Math.floor((totalSeconds % 1) * 1000);
-            
-            return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}.${String(ms).padStart(3, '0')}`;
+        status.textContent = "searching mirrors...";
+        output.textContent = "";
+        searchBtn.disabled = true;
+
+        for (const base of endpoints) {
+            const url = `${base}/v1/lyrics/get?title=${title}&artist=${artist}`;
+            try {
+                status.textContent = `trying mirror: ${new URL(base).hostname}`;
+                const response = await fetch(url);
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data) {
+                        const formatted = JSON.stringify(data, null, 2);
+                        output.textContent = formatted;
+                        status.textContent = `found via ${new URL(base).hostname}`;
+                        searchBtn.disabled = false;
+                        document.getElementById('raw-json-input').value = formatted;
+                        return;
+                    }
+                }
+            } catch (e) {
+                console.error(e);
+            }
         }
 
-        async function fetchRawPayload() {
-            const title = encodeURIComponent(document.getElementById('title').value.trim());
-            const artist = encodeURIComponent(document.getElementById('artist').value.trim());
-            const output = document.getElementById('grabbr-output');
-            const status = document.getElementById('grabbr-status');
-            const searchBtn = document.getElementById('search-btn');
+        status.textContent = "could not find raw data on any mirror";
+        output.textContent = "no results found";
+        searchBtn.disabled = false;
+    }
 
-            if (!title) {
-                status.textContent = "please enter a title";
+    function processTtmlToElrc() {
+        let jsonText = document.getElementById('raw-json-input').value.trim();
+        const output = document.getElementById('magic-output');
+        const status = document.getElementById('magic-status');
+        const useMultiperson = document.getElementById('opt-multiperson').checked;
+        const bgStyle = document.querySelector('input[name="bg-type"]:checked').value;
+
+        if (!jsonText) {
+            status.textContent = "error: input code container is empty";
+            return;
+        }
+
+        let payload;
+        try {
+            payload = JSON.parse(jsonText);
+        } catch (err) {
+            try {
+                let repairedText = jsonText.replace(/,\s*\"?[a-zA-Z0-9_\-]*\"?\s*:\s*$/g, '').trim();
+                if (repairedText.endsWith('{') || repairedText.endsWith(',')) {
+                    repairedText = repairedText.substring(0, repairedText.length - 1).trim();
+                }
+                if (!repairedText.includes(']')) repairedText += ']';
+                if (!repairedText.includes('}')) repairedText += '}';
+                payload = JSON.parse(repairedText);
+                status.textContent = "recovered incomplete layout safely!";
+            } catch (recoveryErr) {
+                status.textContent = "malformed text parsing error: " + err.message;
+                return;
+            }
+        }
+
+        try {
+            let rawLyricsArray = [];
+            if (payload.lyrics && Array.isArray(payload.lyrics)) {
+                rawLyricsArray = payload.lyrics;
+            } else if (Array.isArray(payload)) {
+                rawLyricsArray = payload;
+            } else {
+                status.textContent = "unrecognized schema tree pattern";
                 return;
             }
 
-            status.textContent = "searching mirrors...";
-            output.textContent = "";
-            searchBtn.disabled = true;
+            let processedLines = [];
+            let currentLineWords = [];
 
-            for (const base of endpoints) {
-                const url = `${base}/v1/lyrics/get?title=${title}&artist=${artist}`;
-                try {
-                    status.textContent = `trying mirror: ${new URL(base).hostname}`;
-                    const response = await fetch(url);
-                    if (response.ok) {
-                        const data = await response.json();
-                        if (data) {
-                            const formatted = JSON.stringify(data, null, 2);
-                            output.textContent = formatted;
-                            status.textContent = `found via ${new URL(base).hostname}`;
-                            searchBtn.disabled = false;
-                            document.getElementById('raw-json-input').value = formatted;
-                            return;
-                        }
-                    }
-                } catch (e) {
-                    console.error(e);
-                }
-            }
-
-            status.textContent = "could not find raw data on any mirror";
-            output.textContent = "no results found";
-            searchBtn.disabled = false;
-        }
-
-        function processTtmlToElrc() {
-            let jsonText = document.getElementById('raw-json-input').value.trim();
-            const output = document.getElementById('magic-output');
-            const status = document.getElementById('magic-status');
-            const useMultiperson = document.getElementById('opt-multiperson').checked;
-            const bgStyle = document.querySelector('input[name="bg-type"]:checked').value;
-
-            if (!jsonText) {
-                status.textContent = "error: input code container is empty";
-                return;
-            }
-
-            let payload;
-            try {
-                payload = JSON.parse(jsonText);
-            } catch (err) {
-                try {
-                    let repairedText = jsonText.replace(/,\s*\"?[a-zA-Z0-9_\-]*\"?\s*:\s*$/g, '').trim();
-                    if (repairedText.endsWith('{') || repairedText.endsWith(',')) {
-                        repairedText = repairedText.substring(0, repairedText.length - 1).trim();
-                    }
-                    if (!repairedText.includes(']')) repairedText += ']';
-                    if (!repairedText.includes('}')) repairedText += '}';
-                    payload = JSON.parse(repairedText);
-                    status.textContent = "recovered incomplete layout safely!";
-                } catch (recoveryErr) {
-                    status.textContent = "malformed text parsing error: " + err.message;
-                    return;
-                }
-            }
-
-            try {
-                let rawLyricsArray = [];
-                if (payload.lyrics && Array.isArray(payload.lyrics)) {
-                    rawLyricsArray = payload.lyrics;
-                } else if (Array.isArray(payload)) {
-                    rawLyricsArray = payload;
-                } else {
-                    status.textContent = "unrecognized schema tree pattern";
-                    return;
+            rawLyricsArray.forEach(item => {
+                if (!item) return;
+                
+                if (item.time === undefined || item.time === null || !item.text) {
+                    return; 
                 }
 
-                let processedLines = [];
-                let currentLineWords = [];
-
-                rawLyricsArray.forEach(item => {
-                    if (!item) return;
-                    currentLineWords.push(item);
-                    if (item.isLineEnding === 1) {
-                        processedLines.push(currentLineWords);
+                currentLineWords.push(item);
+                if (item.isLineEnding === 1) {
+                    const fullLineString = currentLineWords.map(w => w.text).join('').trim();
+                    
+                    if (fullLineString.includes('/') && !fullLineString.includes(' / ')) {
                         currentLineWords = [];
+                        return;
                     }
+
+                    processedLines.push(currentLineWords);
+                    currentLineWords = [];
+                }
+            });
+            
+            if (currentLineWords.length > 0) {
+                const finalLineString = currentLineWords.map(w => w.text).join('').trim();
+                if (!(finalLineString.includes('/') && !finalLineString.includes(' / '))) {
+                    processedLines.push(currentLineWords);
+                }
+            }
+
+            let syncedLyrics = "";
+
+            processedLines.forEach(lineItems => {
+                if (lineItems.length === 0) return;
+
+                let mainVocals = [];
+                let backgroundVocals = [];
+
+                lineItems.forEach(item => {
+                    const isBg = item.element && (item.element.isBackground || item.element.songPart === "Background");
+                    if (isBg) backgroundVocals.push(item); else mainVocals.push(item);
                 });
-                if (currentLineWords.length > 0) processedLines.push(currentLineWords);
 
-                let syncedLyrics = "";
-
-                processedLines.forEach(lineItems => {
-                    if (lineItems.length === 0) return;
-
-                    let mainVocals = [];
-                    let backgroundVocals = [];
-
-                    lineItems.forEach(item => {
-                        const isBg = item.element && (item.element.isBackground || item.element.songPart === "Background");
-                        if (isBg) backgroundVocals.push(item); else mainVocals.push(item);
+                if (mainVocals.length > 0) {
+                    syncedLyrics += `[${toLrcTimestamp(mainVocals[0].time)}]`;
+                    if (useMultiperson) {
+                        const singer = (mainVocals[0].element && mainVocals[0].element.singer) ? mainVocals[0].element.singer : "v1";
+                        syncedLyrics += (singer === "v2" || singer === "voice2") ? "v2:" : "v1:";
+                    }
+                    mainVocals.forEach(syllable => {
+                        syncedLyrics += `<${toLrcTimestamp(syllable.time)}>${syllable.text}<${toLrcTimestamp(syllable.time + (syllable.duration || 0))}>`;
                     });
+                }
 
-                    if (mainVocals.length > 0) {
-                        syncedLyrics += `[${toLrcTimestamp(mainVocals[0].time)}]`;
-                        if (useMultiperson) {
-                            const singer = (mainVocals[0].element && mainVocals[0].element.singer) ? mainVocals[0].element.singer : "v1";
-                            syncedLyrics += (singer === "v2" || singer === "voice2") ? "v2:" : "v1:";
-                        }
-                        mainVocals.forEach(syllable => {
+                if (backgroundVocals.length > 0) {
+                    if (bgStyle === "inline-tag") {
+                        syncedLyrics += "\n[bg:";
+                        backgroundVocals.forEach(syllable => {
+                            syncedLyrics += `<${toLrcTimestamp(syllable.time)}>${syllable.text}<${toLrcTimestamp(syllable.time + (syllable.duration || 0))}>`;
+                        });
+                        syncedLyrics += "]";
+                    } else {
+                        syncedLyrics += `\n[${toLrcTimestamp(backgroundVocals[0].time)}]{bg}`;
+                        backgroundVocals.forEach(syllable => {
                             syncedLyrics += `<${toLrcTimestamp(syllable.time)}>${syllable.text}<${toLrcTimestamp(syllable.time + (syllable.duration || 0))}>`;
                         });
                     }
-
-                    if (backgroundVocals.length > 0) {
-                        if (bgStyle === "inline-tag") {
-                            syncedLyrics += "\n[bg:";
-                            backgroundVocals.forEach(syllable => {
-                                syncedLyrics += `<${toLrcTimestamp(syllable.time)}>${syllable.text}<${toLrcTimestamp(syllable.time + (syllable.duration || 0))}>`;
-                            });
-                            syncedLyrics += "]";
-                        } else {
-                            syncedLyrics += `\n[${toLrcTimestamp(backgroundVocals[0].time)}]{bg}`;
-                            backgroundVocals.forEach(syllable => {
-                                syncedLyrics += `<${toLrcTimestamp(syllable.time)}>${syllable.text}<${toLrcTimestamp(syllable.time + (syllable.duration || 0))}>`;
-                            });
-                        }
-                    }
-                    syncedLyrics += "\n";
-                });
-
-                output.textContent = syncedLyrics.trim();
-                if (status.textContent !== "recovered incomplete layout safely!") {
-                    status.textContent = "transformation process complete";
                 }
-            } catch (err) {
-                status.textContent = "processing error: " + err.message;
-            }
-        }
+                syncedLyrics += "\n";
+            });
 
-        function copyToClipboard(contentElementId, statusElementId) {
-            const text = document.getElementById(contentElementId).textContent;
-            const status = document.getElementById(statusElementId);
-            const bad = ["raw json payload will appear here", "output is here", "no results found"];
-            
-            if (text && !bad.includes(text)) {
-                navigator.clipboard.writeText(text).then(() => {
-                    const current = status.textContent;
-                    status.textContent = "copied to clipboard";
-                    setTimeout(() => { status.textContent = current; }, 2000);
-                });
+            output.textContent = syncedLyrics.trim();
+            if (status.textContent !== "recovered incomplete layout safely!") {
+                status.textContent = "transformation process complete";
             }
+        } catch (err) {
+            status.textContent = "processing error: " + err.message;
         }
-    </script>
+    }
+
+    function copyToClipboard(contentElementId, statusElementId) {
+        const text = document.getElementById(contentElementId).textContent;
+        const status = document.getElementById(statusElementId);
+        const bad = ["raw json payload will appear here", "output is here", "no results found"];
+        
+        if (text && !bad.includes(text)) {
+            navigator.clipboard.writeText(text).then(() => {
+                const current = status.textContent;
+                status.textContent = "copied to clipboard";
+                setTimeout(() => { status.textContent = current; }, 2000);
+            });
+        }
+    }
+</script>
 </body>
 </html>

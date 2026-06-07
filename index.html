@@ -134,16 +134,16 @@
             overflow: hidden;
             display: flex;
             flex-direction: column;
-            height: 350px;
+            height: 400px; /* bumped height up slightly to look better with large code chunks */
         }
 
         .results-content {
             padding: 16px;
             overflow-y: auto;
             flex-grow: 1;
-            white-space: pre-wrap;
-            font-family: inherit;
-            font-size: 1rem;
+            white-space: pre; /* keeps the beautiful json spacing structure intact */
+            font-family: monospace; /* code font makes reading huge raw payloads way cleaner */
+            font-size: 0.875rem;
             line-height: 1.5;
             color: var(--md-sys-color-on-surface-variant);
         }
@@ -190,7 +190,7 @@
         </div>
 
         <div class="button-row">
-            <button id="search-btn" class="btn-primary" onclick="fetchLyrics()">get lyrics</button>
+            <button id="search-btn" class="btn-primary" onclick="fetchRawPayload()">get raw ttml</button>
         </div>
 
         <div id="status" class="status-text"></div>
@@ -201,129 +201,80 @@
                     <span class="material-icons-outlined">content_copy</span>
                 </button>
             </div>
-            <div id="output" class="results-content">lyrics will appear here</div>
+            <div id="output" class="results-content">raw json payload will appear here</div>
         </div>
     </div>
 
-<script>
-    const endpoints = [
-        "https://lyrics.geeked.wtf",
-        "https://lyricsplus.prjktla.my.id",
-        "https://lyricsplus.atomix.one",
-        "https://lyricsplus.binimum.org",
-        "https://lyricsplus.prjktla.workers.dev",
-        "https://lyricsplus-seven.vercel.app"
-    ];
+    <script>
+        const endpoints = [
+            "https://lyrics.geeked.wtf",
+            "https://lyricsplus.prjktla.my.id",
+            "https://lyricsplus.atomix.one",
+            "https://lyricsplus.binimum.org",
+            "https://lyricsplus.prjktla.workers.dev",
+            "https://lyricsplus-seven.vercel.app"
+        ];
 
-    // helper function to turn milliseconds or seconds into a clean [mm:ss.xx] timestamp
-    function formatTime(timeInput) {
-        if (timeInput === undefined || timeInput === null) return "";
-        let seconds = parseFloat(timeInput);
-        // if the api gives huge numbers, it is in milliseconds, so convert to seconds
-        if (seconds > 10000) {
-            seconds = seconds / 1000;
-        }
-        if (isNaN(seconds)) return "";
-        
-        const mins = Math.floor(seconds / 60);
-        const secs = Math.floor(seconds % 60);
-        const ms = Math.floor((seconds % 1) * 100);
-        
-        const strMins = String(mins).padStart(2, '0');
-        const strSecs = String(secs).padStart(2, '0');
-        const strMs = String(ms).padStart(2, '0');
-        
-        return `[${strMins}:${strSecs}.${strMs}]`;
-    }
+        async function fetchRawPayload() {
+            const title = encodeURIComponent(document.getElementById('title').value.trim());
+            const artist = encodeURIComponent(document.getElementById('artist').value.trim());
+            const output = document.getElementById('output');
+            const status = document.getElementById('status');
+            const searchBtn = document.getElementById('search-btn');
 
-    async function fetchLyrics() {
-        const title = encodeURIComponent(document.getElementById('title').value.trim());
-        const artist = encodeURIComponent(document.getElementById('artist').value.trim());
-        const output = document.getElementById('output');
-        const status = document.getElementById('status');
-        const searchBtn = document.getElementById('search-btn');
+            if (!title) {
+                status.textContent = "please enter a title";
+                return;
+            }
 
-        if (!title) {
-            status.textContent = "please enter a title";
-            return;
-        }
+            status.textContent = "searching mirrors...";
+            output.textContent = "";
+            searchBtn.disabled = true;
 
-        status.textContent = "searching mirrors...";
-        output.textContent = "";
-        searchBtn.disabled = true;
-
-        for (const base of endpoints) {
-            const url = `${base}/v1/lyrics/get?title=${title}&artist=${artist}`;
-            try {
-                status.textContent = `trying mirror: ${new URL(base).hostname}`;
-                const response = await fetch(url);
-                
-                if (response.ok) {
-                    const data = await response.json();
+            for (const base of endpoints) {
+                const url = `${base}/v1/lyrics/get?title=${title}&artist=${artist}`;
+                try {
+                    status.textContent = `trying mirror: ${new URL(base).hostname}`;
+                    const response = await fetch(url);
                     
-                    if (data && data.lyrics) {
-                        let formattedLyrics = "";
-
-                        if (Array.isArray(data.lyrics)) {
-                            formattedLyrics = data.lyrics.map(line => {
-                                // case a: word-by-word data with deep arrays and internal timestamps
-                                if (line && typeof line === 'object' && Array.isArray(line.words)) {
-                                    const lineStart = formatTime(line.startTime || line.time);
-                                    const wordsText = line.words.map(w => {
-                                        // keeping word specific data if needed, or just standard string
-                                        return w.string || w.text || '';
-                                    }).join(' ');
-                                    return `${lineStart} ${wordsText}`.trim();
-                                }
-                                // case b: line object with direct text and top-level timestamp
-                                if (line && typeof line === 'object') {
-                                    const lineStart = formatTime(line.startTime || line.time);
-                                    const txt = line.text || line.line || line.string || JSON.stringify(line);
-                                    return `${lineStart} ${txt}`.trim();
-                                }
-                                // case c: simple text lines
-                                return line;
-                            }).join('\n');
-                        } else if (typeof data.lyrics === 'object') {
-                            formattedLyrics = JSON.stringify(data.lyrics, null, 2);
-                        } else {
-                            formattedLyrics = data.lyrics;
-                        }
-
-                        if (formattedLyrics.trim()) {
-                            output.textContent = formattedLyrics;
+                    if (response.ok) {
+                        const data = await response.json();
+                        
+                        // completely skip processing lyric strings! 
+                        // dump the whole raw unedited data tree straight into the box.
+                        if (data) {
+                            output.textContent = JSON.stringify(data, null, 2);
                             status.textContent = `found via ${new URL(base).hostname}`;
                             searchBtn.disabled = false;
                             return;
                         }
                     }
+                } catch (e) {
+                    console.error(`failed to fetch payload from ${base}:`, e);
                 }
-            } catch (e) {
-                console.error(`failed to fetch from ${base}:`, e);
+            }
+
+            status.textContent = "could not find raw data on any mirror";
+            output.textContent = "no results found";
+            searchBtn.disabled = false;
+        }
+
+        function copyToClipboard() {
+            const text = document.getElementById('output').textContent;
+            const status = document.getElementById('status');
+            
+            if (text && text !== "raw json payload will appear here" && text !== "no results found") {
+                navigator.clipboard.writeText(text).then(() => {
+                    const currentStatus = status.textContent;
+                    status.textContent = "copied to clipboard";
+                    setTimeout(() => {
+                        status.textContent = currentStatus;
+                    }, 2000);
+                }).catch(err => {
+                    status.textContent = "failed to copy text";
+                });
             }
         }
-
-        status.textContent = "could not find lyrics on any mirror";
-        output.textContent = "no results found";
-        searchBtn.disabled = false;
-    }
-
-    function copyToClipboard() {
-        const text = document.getElementById('output').textContent;
-        const status = document.getElementById('status');
-        
-        if (text && text !== "lyrics will appear here" && text !== "no results found") {
-            navigator.clipboard.writeText(text).then(() => {
-                const currentStatus = status.textContent;
-                status.textContent = "copied to clipboard";
-                setTimeout(() => {
-                    status.textContent = currentStatus;
-                }, 2000);
-            }).catch(err => {
-                status.textContent = "failed to copy text";
-            });
-        }
-    }
-</script>
+    </script>
 </body>
 </html>

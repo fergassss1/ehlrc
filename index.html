@@ -4,16 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ehlrc</title>
-    
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Google+Sans+Flex:opsz,wght@8..144,100..1000&family=Roboto:wght@400;500&display=swap" rel="stylesheet">
-    
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet">
 
     <style>
         :root {
-            /* Material 3 Dark Palette with Orange Accent */
             --md-sys-color-background: #1f1105;
             --md-sys-color-on-background: #eae0d9;
             --md-sys-color-surface: #27190c;
@@ -25,7 +22,6 @@
             --md-sys-color-primary-container: #6f3800;
             --md-sys-color-on-primary-container: #ffdcbe;
             --md-sys-color-outline: #9e8e81;
-            
             --md-shape-corner-medium: 12px;
             --md-shape-corner-full: 9999px;
         }
@@ -56,7 +52,6 @@
             gap: 0px;
         }
 
-        /* Tab Bar Navigation */
         .tab-bar {
             display: flex;
             gap: 4px;
@@ -82,7 +77,6 @@
             text-underline-offset: 4px;
         }
 
-        /* Dashboard Panel Box */
         .panel {
             background-color: var(--md-sys-color-surface);
             padding: 24px;
@@ -124,13 +118,10 @@
             padding: 16px;
             font-size: 1rem;
             outline: none;
-            transition: border-color 0.2s;
         }
 
         .input-field:focus {
             border-color: var(--md-sys-color-primary);
-            border-width: 2px;
-            padding: 15px;
         }
 
         textarea.input-field {
@@ -140,7 +131,6 @@
             font-size: 0.875rem;
         }
 
-        /* Options for Custom Formatting */
         .options-group {
             display: flex;
             flex-direction: column;
@@ -155,8 +145,7 @@
             cursor: pointer;
         }
 
-        .option-row input[type="checkbox"],
-        .option-row input[type="radio"] {
+        .option-row input {
             accent-color: var(--md-sys-color-primary);
             width: 16px;
             height: 16px;
@@ -182,15 +171,10 @@
             border-radius: var(--md-shape-corner-full);
             cursor: pointer;
             align-self: flex-start;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            transition: opacity 0.2s;
         }
 
         button.btn-primary:disabled {
             opacity: 0.5;
-            cursor: not-allowed;
         }
 
         .status-text {
@@ -199,7 +183,6 @@
             min-height: 20px;
         }
 
-        /* Output Window Container */
         .results-box {
             position: relative;
             background-color: var(--md-sys-color-surface-variant);
@@ -241,25 +224,16 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            box-shadow: 0px 1px 3px rgba(0,0,0,0.3);
-        }
-
-        .icon-btn:hover {
-            opacity: 0.9;
-        }
-
-        .material-icons-outlined {
-            font-size: 20px;
         }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <div class="tab-bar">
-        <button class="tab-btn active" onclick="switchTab('grabbr-tab', this)">ttml grabbr</button>
-        <button class="tab-btn" onclick="switchTab('magic-tab', this)">elrc magic</button>
-    </div>
+    <div class="container">
+        <div class="tab-bar">
+            <button class="tab-btn active" onclick="switchTabByIndex(0, this)">ttml grabbr</button>
+            <button class="tab-btn" onclick="switchTabByIndex(1, this)">elrc magic</button>
+        </div>
 
         <div class="panel">
             
@@ -273,7 +247,7 @@
                 <div id="grabbr-status" class="status-text"></div>
                 <div class="results-box">
                     <div class="action-bar">
-                        <button class="icon-btn" onclick="copyToClipboard('grabbr-output', 'grabbr-status')" title="copy to clipboard">
+                        <button class="icon-btn" onclick="copyToClipboard('grabbr-output', 'grabbr-status')">
                             <span class="material-icons-outlined">content_copy</span>
                         </button>
                     </div>
@@ -284,7 +258,7 @@
             <div id="magic-tab" class="tab-content">
                 <h2>insert ttml</h2>
                 <div class="input-group">
-                    <textarea id="raw-json-input" class="input-field" placeholder='paste raw data payload json tree here...'></textarea>
+                    <textarea id="raw-json-input" class="input-field" placeholder="paste raw data payload json tree here..."></textarea>
                 </div>
                 
                 <h2>elrc format</h2>
@@ -312,7 +286,7 @@
                 <div id="magic-status" class="status-text"></div>
                 <div class="results-box">
                     <div class="action-bar">
-                        <button class="icon-btn" onclick="copyToClipboard('magic-output', 'magic-status')" title="copy to clipboard">
+                        <button class="icon-btn" onclick="copyToClipboard('magic-output', 'magic-status')">
                             <span class="material-icons-outlined">content_copy</span>
                         </button>
                     </div>
@@ -322,248 +296,198 @@
 
         </div>
     </div>
+
     <script>
-    const endpoints = [
-        "https://lyrics.geeked.wtf",
-        "https://lyricsplus.prjktla.my.id",
-        "https://lyricsplus.atomix.one",
-        "https://lyricsplus.binimum.org",
-        "https://lyricsplus.prjktla.workers.dev",
-        "https://lyricsplus-seven.vercel.app"
-    ];
+        const endpoints = [
+            "https://lyrics.geeked.wtf",
+            "https://lyricsplus.prjktla.my.id",
+            "https://lyricsplus.atomix.one",
+            "https://lyricsplus.binimum.org",
+            "https://lyricsplus.prjktla.workers.dev",
+            "https://lyricsplus-seven.vercel.app"
+        ];
 
-    function switchTab(tabId, element) {
-        document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
-        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-        
-        document.getElementById(tabId).classList.add('active');
-        element.classList.add('active');
-    }
-
-    // formatting milliseconds directly to the exact required format: mm:ss.xxx
-    function toLrcTimestamp(msInput) {
-        if (msInput === undefined || msInput === null) return "00:00.000";
-        let totalSeconds = parseFloat(msInput) / 1000;
-        if (isNaN(totalSeconds) || totalSeconds < 0) totalSeconds = 0;
-        
-        const mins = Math.floor(totalSeconds / 60);
-        const secs = Math.floor(totalSeconds % 60);
-        const ms = Math.floor((totalSeconds % 1) * 1000);
-        
-        const mm = String(mins).padStart(2, '0');
-        const ss = String(secs).padStart(2, '0');
-        const xxx = String(ms).padStart(3, '0');
-        
-        return `${mm}:${ss}.${xxx}`;
-    }
-
-    async function fetchRawPayload() {
-        const title = encodeURIComponent(document.getElementById('title').value.trim());
-        const artist = encodeURIComponent(document.getElementById('artist').value.trim());
-        const output = document.getElementById('grabbr-output');
-        const status = document.getElementById('grabbr-status');
-        const searchBtn = document.getElementById('search-btn');
-
-        if (!title) {
-            status.textContent = "please enter a title";
-            return;
+        function switchTabByIndex(idx, btnElement) {
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            
+            const targets = ['grabbr-tab', 'magic-tab'];
+            document.getElementById(targets[idx]).classList.add('active');
+            btnElement.classList.add('active');
         }
 
-        status.textContent = "searching mirrors...";
-        output.textContent = "";
-        searchBtn.disabled = true;
+        function toLrcTimestamp(msInput) {
+            if (msInput === undefined || msInput === null) return "00:00.000";
+            let totalSeconds = parseFloat(msInput) / 1000;
+            if (isNaN(totalSeconds) || totalSeconds < 0) totalSeconds = 0;
+            
+            const mins = Math.floor(totalSeconds / 60);
+            const secs = Math.floor(totalSeconds % 60);
+            const ms = Math.floor((totalSeconds % 1) * 1000);
+            
+            return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}.${String(ms).padStart(3, '0')}`;
+        }
 
-        for (const base of endpoints) {
-            const url = `${base}/v1/lyrics/get?title=${title}&artist=${artist}`;
-            try {
-                status.textContent = `trying mirror: ${new URL(base).hostname}`;
-                const response = await fetch(url);
-                
-                if (response.ok) {
-                    const data = await response.json();
-                    if (data) {
-                        output.textContent = JSON.stringify(data, null, 2);
-                        status.textContent = `found via ${new URL(base).hostname}`;
-                        searchBtn.disabled = false;
-                        document.getElementById('raw-json-input').value = JSON.stringify(data, null, 2);
-                        return;
+        async function fetchRawPayload() {
+            const title = encodeURIComponent(document.getElementById('title').value.trim());
+            const artist = encodeURIComponent(document.getElementById('artist').value.trim());
+            const output = document.getElementById('grabbr-output');
+            const status = document.getElementById('grabbr-status');
+            const searchBtn = document.getElementById('search-btn');
+
+            if (!title) {
+                status.textContent = "please enter a title";
+                return;
+            }
+
+            status.textContent = "searching mirrors...";
+            output.textContent = "";
+            searchBtn.disabled = true;
+
+            for (const base of endpoints) {
+                const url = `${base}/v1/lyrics/get?title=${title}&artist=${artist}`;
+                try {
+                    status.textContent = `trying mirror: ${new URL(base).hostname}`;
+                    const response = await fetch(url);
+                    if (response.ok) {
+                        const data = await response.json();
+                        if (data) {
+                            const formatted = JSON.stringify(data, null, 2);
+                            output.textContent = formatted;
+                            status.textContent = `found via ${new URL(base).hostname}`;
+                            searchBtn.disabled = false;
+                            document.getElementById('raw-json-input').value = formatted;
+                            return;
+                        }
                     }
+                } catch (e) {
+                    console.error(e);
                 }
-            } catch (e) {
-                console.error(`failed to fetch payload from ${base}:`, e);
             }
+
+            status.textContent = "could not find raw data on any mirror";
+            output.textContent = "no results found";
+            searchBtn.disabled = false;
         }
 
-        status.textContent = "could not find raw data on any mirror";
-        output.textContent = "no results found";
-        searchBtn.disabled = false;
-    }
-function processTtmlToElrc() {
-    let jsonText = document.getElementById('raw-json-input').value.trim();
-    const output = document.getElementById('magic-output');
-    const status = document.getElementById('magic-status');
-    
-    const useMultiperson = document.getElementById('opt-multiperson').checked;
-    const bgStyle = document.querySelector('input[name="bg-type"]:checked').value;
+        function processTtmlToElrc() {
+            let jsonText = document.getElementById('raw-json-input').value.trim();
+            const output = document.getElementById('magic-output');
+            const status = document.getElementById('magic-status');
+            const useMultiperson = document.getElementById('opt-multiperson').checked;
+            const bgStyle = document.querySelector('input[name="bg-type"]:checked').value;
 
-    if (!jsonText) {
-        status.textContent = "error: input code container is empty";
-        return;
-    }
-
-    let payload;
-    try {
-        // try to parse normally first
-        payload = JSON.parse(jsonText);
-    } catch (err) {
-        // if it fails due to a truncation/cut-off, step in and patch it
-        console.log("incomplete payload detected. attempting layout recovery...");
-        
-        try {
-            // remove trailing commas or loose properties at the cutoff point
-            let repairedText = jsonText.replace(/,\s*\"?[a-zA-Z0-9_\-]*\"?\s*:\s*$/g, '');
-            repairedText = repairedText.trim();
-            
-            // balance out arrays and objects depending on where it broke
-            if (repairedText.endsWith('{')) {
-                repairedText = repairedText.substring(0, repairedText.length - 1).trim();
+            if (!jsonText) {
+                status.textContent = "error: input code container is empty";
+                return;
             }
-            if (repairedText.endsWith(',')) {
-                repairedText = repairedText.substring(0, repairedText.length - 1).trim();
+
+            let payload;
+            try {
+                payload = JSON.parse(jsonText);
+            } catch (err) {
+                try {
+                    let repairedText = jsonText.replace(/,\s*\"?[a-zA-Z0-9_\-]*\"?\s*:\s*$/g, '').trim();
+                    if (repairedText.endsWith('{') || repairedText.endsWith(',')) {
+                        repairedText = repairedText.substring(0, repairedText.length - 1).trim();
+                    }
+                    if (!repairedText.includes(']')) repairedText += ']';
+                    if (!repairedText.includes('}')) repairedText += '}';
+                    payload = JSON.parse(repairedText);
+                    status.textContent = "recovered incomplete layout safely!";
+                } catch (recoveryErr) {
+                    status.textContent = "malformed text parsing error: " + err.message;
+                    return;
+                }
             }
-            
-            // close out open array tracks and main root objects safely
-            if (!repairedText.includes(']')) repairedText += ']';
-            if (!repairedText.includes('}')) repairedText += '}';
-            
-            payload = JSON.parse(repairedText);
-            status.textContent = "recovered incomplete layout safely!";
-        } catch (recoveryErr) {
-            console.error(recoveryErr);
-            status.textContent = "malformed text parsing error: " + err.message;
-            return;
-        }
-    }
 
-    try {
-        let rawLyricsArray = [];
-        if (payload.lyrics && Array.isArray(payload.lyrics)) {
-            rawLyricsArray = payload.lyrics;
-        } else if (Array.isArray(payload)) {
-            rawLyricsArray = payload;
-        } else {
-            status.textContent = "unrecognized schema tree pattern";
-            return;
-        }
-
-        // bundle continuous syllable items into clean line arrays using isLineEnding
-        let processedLines = [];
-        let currentLineWords = [];
-
-        rawLyricsArray.forEach(item => {
-            if (!item) return;
-            currentLineWords.push(item);
-            if (item.isLineEnding === 1) {
-                processedLines.push(currentLineWords);
-                currentLineWords = [];
-            }
-        });
-        
-        if (currentLineWords.length > 0) {
-            processedLines.push(currentLineWords);
-        }
-
-        let syncedLyrics = "";
-
-        // process every line bundle according to specifications
-        processedLines.forEach(lineItems => {
-            if (lineItems.length === 0) return;
-
-            let mainVocals = [];
-            let backgroundVocals = [];
-
-            lineItems.forEach(item => {
-                const isBg = item.element && (item.element.isBackground || item.element.songPart === "Background");
-                if (isBg) {
-                    backgroundVocals.push(item);
+            try {
+                let rawLyricsArray = [];
+                if (payload.lyrics && Array.isArray(payload.lyrics)) {
+                    rawLyricsArray = payload.lyrics;
+                } else if (Array.isArray(payload)) {
+                    rawLyricsArray = payload;
                 } else {
-                    mainVocals.push(item);
-                }
-            });
-
-            if (mainVocals.length > 0) {
-                const lineStartTime = mainVocals[0].time;
-                syncedLyrics += `[${toLrcTimestamp(lineStartTime)}]`;
-
-                if (useMultiperson) {
-                    const singer = (mainVocals[0].element && mainVocals[0].element.singer) ? mainVocals[0].element.singer : "v1";
-                    syncedLyrics += (singer === "v2" || singer === "voice2") ? "v2:" : "v1:";
+                    status.textContent = "unrecognized schema tree pattern";
+                    return;
                 }
 
-                mainVocals.forEach(syllable => {
-                    const start = toLrcTimestamp(syllable.time);
-                    const end = toLrcTimestamp(syllable.time + (syllable.duration || 0));
-                    syncedLyrics += `<${start}>${syllable.text}<${end}>`;
+                let processedLines = [];
+                let currentLineWords = [];
+
+                rawLyricsArray.forEach(item => {
+                    if (!item) return;
+                    currentLineWords.push(item);
+                    if (item.isLineEnding === 1) {
+                        processedLines.push(currentLineWords);
+                        currentLineWords = [];
+                    }
+                });
+                if (currentLineWords.length > 0) processedLines.push(currentLineWords);
+
+                let syncedLyrics = "";
+
+                processedLines.forEach(lineItems => {
+                    if (lineItems.length === 0) return;
+
+                    let mainVocals = [];
+                    let backgroundVocals = [];
+
+                    lineItems.forEach(item => {
+                        const isBg = item.element && (item.element.isBackground || item.element.songPart === "Background");
+                        if (isBg) backgroundVocals.push(item); else mainVocals.push(item);
+                    });
+
+                    if (mainVocals.length > 0) {
+                        syncedLyrics += `[${toLrcTimestamp(mainVocals[0].time)}]`;
+                        if (useMultiperson) {
+                            const singer = (mainVocals[0].element && mainVocals[0].element.singer) ? mainVocals[0].element.singer : "v1";
+                            syncedLyrics += (singer === "v2" || singer === "voice2") ? "v2:" : "v1:";
+                        }
+                        mainVocals.forEach(syllable => {
+                            syncedLyrics += `<${toLrcTimestamp(syllable.time)}>${syllable.text}<${toLrcTimestamp(syllable.time + (syllable.duration || 0))}>`;
+                        });
+                    }
+
+                    if (backgroundVocals.length > 0) {
+                        if (bgStyle === "inline-tag") {
+                            syncedLyrics += "\n[bg:";
+                            backgroundVocals.forEach(syllable => {
+                                syncedLyrics += `<${toLrcTimestamp(syllable.time)}>${syllable.text}<${toLrcTimestamp(syllable.time + (syllable.duration || 0))}>`;
+                            });
+                            syncedLyrics += "]";
+                        } else {
+                            syncedLyrics += `\n[${toLrcTimestamp(backgroundVocals[0].time)}]{bg}`;
+                            backgroundVocals.forEach(syllable => {
+                                syncedLyrics += `<${toLrcTimestamp(syllable.time)}>${syllable.text}<${toLrcTimestamp(syllable.time + (syllable.duration || 0))}>`;
+                            });
+                        }
+                    }
+                    syncedLyrics += "\n";
+                });
+
+                output.textContent = syncedLyrics.trim();
+                if (status.textContent !== "recovered incomplete layout safely!") {
+                    status.textContent = "transformation process complete";
+                }
+            } catch (err) {
+                status.textContent = "processing error: " + err.message;
+            }
+        }
+
+        function copyToClipboard(contentElementId, statusElementId) {
+            const text = document.getElementById(contentElementId).textContent;
+            const status = document.getElementById(statusElementId);
+            const bad = ["raw json payload will appear here", "output is here", "no results found"];
+            
+            if (text && !bad.includes(text)) {
+                navigator.clipboard.writeText(text).then(() => {
+                    const current = status.textContent;
+                    status.textContent = "copied to clipboard";
+                    setTimeout(() => { status.textContent = current; }, 2000);
                 });
             }
-
-            if (backgroundVocals.length > 0) {
-                const bgStartTime = backgroundVocals[0].time;
-                
-                if (bgStyle === "inline-tag") {
-                    syncedLyrics += "\n[bg:";
-                    backgroundVocals.forEach(syllable => {
-                        const start = toLrcTimestamp(syllable.time);
-                        const end = toLrcTimestamp(syllable.time + (syllable.duration || 0));
-                        syncedLyrics += `<${start}>${syllable.text}<${end}>`;
-                    });
-                    syncedLyrics += "]";
-                } else {
-                    syncedLyrics += `\n[${toLrcTimestamp(bgStartTime)}]{bg}`;
-                    backgroundVocals.forEach(syllable => {
-                        const start = toLrcTimestamp(syllable.time);
-                        const end = toLrcTimestamp(syllable.time + (syllable.duration || 0));
-                        syncedLyrics += `<${start}>${syllable.text}<${end}>`;
-                    });
-                }
-            }
-
-            syncedLyrics += "\n";
-        });
-
-        output.textContent = syncedLyrics.trim() || "processing returned empty structural parameters";
-        if (status.textContent !== "recovered incomplete layout safely!") {
-            status.textContent = "transformation process complete";
         }
-
-    } catch (err) {
-        console.error(err);
-        status.textContent = "processing error: " + err.message;
-    }
-}
-        } catch (err) {
-            console.error(err);
-            status.textContent = "malformed text parsing error: " + err.message;
-        }
-    }
-
-    function copyToClipboard(contentElementId, statusElementId) {
-        const text = document.getElementById(contentElementId).textContent;
-        const status = document.getElementById(statusElementId);
-        
-        const initialPlaceholders = ["raw json payload will appear here", "output is here", "no results found"];
-        if (text && !initialPlaceholders.includes(text)) {
-            navigator.clipboard.writeText(text).then(() => {
-                const currentStatus = status.textContent;
-                status.textContent = "copied to clipboard";
-                setTimeout(() => {
-                    status.textContent = currentStatus;
-                }, 2000);
-            }).catch(err => {
-                status.textContent = "failed to copy text";
-            });
-        }
-    }
     </script>
 </body>
 </html>

@@ -141,9 +141,9 @@
             padding: 16px;
             overflow-y: auto;
             flex-grow: 1;
-            white-space: pre;
-            font-family: monospace; /* changed to monospace since raw ttml/json data is easier to read this way */
-            font-size: 0.875rem;
+            white-space: pre-wrap;
+            font-family: inherit;
+            font-size: 1rem;
             line-height: 1.5;
             color: var(--md-sys-color-on-surface-variant);
         }
@@ -190,7 +190,7 @@
         </div>
 
         <div class="button-row">
-            <button id="search-btn" class="btn-primary" onclick="fetchRawLyrics()">get raw lyrics</button>
+            <button id="search-btn" class="btn-primary" onclick="fetchLyrics()">get lyrics</button>
         </div>
 
         <div id="status" class="status-text"></div>
@@ -201,12 +201,14 @@
                     <span class="material-icons-outlined">content_copy</span>
                 </button>
             </div>
-            <div id="output" class="results-content">raw data will appear here</div>
+            <div id="output" class="results-content">lyrics will appear here</div>
         </div>
     </div>
 
     <script>
+        // added your working mirror to the list
         const endpoints = [
+            "https://lyrics.geeked.wtf",
             "https://lyricsplus.prjktla.my.id",
             "https://lyricsplus.atomix.one",
             "https://lyricsplus.binimum.org",
@@ -214,7 +216,7 @@
             "https://lyricsplus-seven.vercel.app"
         ];
 
-        async function fetchRawLyrics() {
+        async function fetchLyrics() {
             const title = encodeURIComponent(document.getElementById('title').value.trim());
             const artist = encodeURIComponent(document.getElementById('artist').value.trim());
             const output = document.getElementById('output');
@@ -231,38 +233,53 @@
             searchBtn.disabled = true;
 
             for (const base of endpoints) {
-                // switched endpoint pattern to v1/raw/get
-                const url = `${base}/v1/raw/get?title=${title}&artist=${artist}`;
+                // trying /v1/lyrics/get path to accurately match your working endpoint
+                const url = `${base}/v1/lyrics/get?title=${title}&artist=${artist}`;
                 try {
                     status.textContent = `trying mirror: ${new URL(base).hostname}`;
                     const response = await fetch(url);
                     
                     if (response.ok) {
-                        const contentType = response.headers.get("content-type");
-                        let rawText = "";
+                        const data = await response.json();
+                        
+                        if (data && data.lyrics) {
+                            let formattedLyrics = "";
 
-                        if (contentType && contentType.includes("application/json")) {
-                            const jsonData = await response.json();
-                            // pretty print the JSON structure
-                            rawText = JSON.stringify(jsonData, null, 2);
-                        } else {
-                            // capture exact text string (xml, ttml, lrc, etc.)
-                            rawText = await response.text();
-                        }
+                            if (Array.isArray(data.lyrics)) {
+                                formattedLyrics = data.lyrics.map(line => {
+                                    // scenario a: it's a deep word-by-word object containing a nested words array
+                                    if (line && typeof line === 'object' && Array.isArray(line.words)) {
+                                        return line.words.map(w => w.string || w.text || '').join(' ');
+                                    }
+                                    // scenario b: it's a line object with direct text/line strings
+                                    if (line && typeof line === 'object') {
+                                        return line.text || line.line || line.string || JSON.stringify(line);
+                                    }
+                                    // scenario c: it's a basic array of plain text lines
+                                    return line;
+                                }).join('\n');
+                            } else if (typeof data.lyrics === 'object') {
+                                // safety net: if the top-level lyrics field itself is a raw unparsed block object
+                                formattedLyrics = JSON.stringify(data.lyrics, null, 2);
+                            } else {
+                                // scenario d: plain simple string
+                                formattedLyrics = data.lyrics;
+                            }
 
-                        if (rawText.trim()) {
-                            output.textContent = rawText;
-                            status.textContent = `found via ${new URL(base).hostname}`;
-                            searchBtn.disabled = false;
-                            return;
+                            if (formattedLyrics.trim()) {
+                                output.textContent = formattedLyrics;
+                                status.textContent = `found via ${new URL(base).hostname}`;
+                                searchBtn.disabled = false;
+                                return;
+                            }
                         }
                     }
                 } catch (e) {
-                    console.error(`failed to fetch raw data from ${base}:`, e);
+                    console.error(`failed to fetch from ${base}:`, e);
                 }
             }
 
-            status.textContent = "could not find raw lyrics on any mirror";
+            status.textContent = "could not find lyrics on any mirror";
             output.textContent = "no results found";
             searchBtn.disabled = false;
         }
@@ -271,7 +288,7 @@
             const text = document.getElementById('output').textContent;
             const status = document.getElementById('status');
             
-            if (text && text !== "raw data will appear here" && text !== "no results found") {
+            if (text && text !== "lyrics will appear here" && text !== "no results found") {
                 navigator.clipboard.writeText(text).then(() => {
                     const currentStatus = status.textContent;
                     status.textContent = "copied to clipboard";

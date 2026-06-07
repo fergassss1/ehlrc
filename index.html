@@ -87,7 +87,7 @@
         .input-field:focus {
             border-color: var(--md-sys-color-primary);
             border-width: 2px;
-            padding: 15px; /* Adjust padding to prevent layout shift with 2px border */
+            padding: 15px;
         }
 
         .button-row {
@@ -179,7 +179,7 @@
             opacity: 0.9;
         }
 
-        .material-icons-outpined {
+        .material-icons-outlined {
             font-size: 20px;
         }
     </style>
@@ -203,7 +203,7 @@
         <div class="results-box">
             <div class="action-bar">
                 <button class="icon-btn" onclick="copyToClipboard()" title="copy to clipboard">
-                    <span class="material-icons-Outlined">content_copy</span>
+                    <span class="material-icons-outlined">content_copy</span>
                 </button>
             </div>
             <div id="output" class="results-content">lyrics will appear here</div>
@@ -244,31 +244,29 @@
                     if (response.ok) {
                         const data = await response.json();
                         
-if (data && data.lyrics) {
-    if (Array.isArray(data.lyrics)) {
-        // check if the first item is an object instead of a string
-        if (typeof data.lyrics[0] === 'object' && data.lyrics[0] !== null) {
-            // map through and extract the text line (handles .text, .line, or .words)
-            output.textContent = data.lyrics
-                .map(item => item.text || item.line || item.words || JSON.stringify(item))
-                .join('\n');
-        } else {
-            // standard array of strings
-            output.textContent = data.lyrics.join('\n');
-        }
-    } else {
-        // plain text string
-        output.textContent = data.lyrics;
-    }
-    
-    status.textContent = `found via ${new URL(base).hostname}`;
-    searchBtn.disabled = false;
-    return;
-}
+                        if (data && data.lyrics) {
+                            if (Array.isArray(data.lyrics)) {
+                                // check if the first item is an object instead of a string
+                                if (typeof data.lyrics[0] === 'object' && data.lyrics[0] !== null) {
+                                    // map through and extract the text line (handles .text, .line, or .words)
+                                    output.textContent = data.lyrics
+                                        .map(item => item.text || item.line || item.words || JSON.stringify(item))
+                                        .join('\n');
+                                } else {
+                                    // standard array of strings
+                                    output.textContent = data.lyrics.join('\n');
+                                }
+                            } else {
+                                // plain text string
+                                output.textContent = data.lyrics;
+                            }
+                            
+                            status.textContent = `found via ${new URL(base).hostname}`;
+                            searchBtn.disabled = false;
+                            return;
                         }
                     }
                 } catch (e) {
-                    // Fail silently to proceed to the next mirror
                     console.error(`failed to fetch from ${base}:`, e);
                 }
             }

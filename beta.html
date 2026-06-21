@@ -240,7 +240,7 @@
             <div id="grabbr-tab" class="tab-content active">
                 <h2>ehlrc</h2>
                 <div class="input-group">
-                    <input type="text" id="title" class="input-field" placeholder="title" autocomplete="off">
+                    <input type="text" id="title" class="input-field" placeholder="title or YouTube URL" autocomplete="off">
                     <input type="text" id="artist" class="input-field" placeholder="artist" autocomplete="off">
                 </div>
                 <button id="search-btn" class="btn-primary" onclick="fetchRawPayload()">get raw ttml</button>
@@ -305,7 +305,7 @@
         "https://lyricsplus.binimum.org",
         "https://lyricsplus.prjktla.workers.dev",
         "https://lyricsplus-seven.vercel.app",
-        "SIMPMUSIC_API" // Custom placeholder for special handling
+        "SIMPMUSIC_API"
     ];
 
     function switchTabByIndex(idx, btnElement) {
@@ -329,28 +329,54 @@
         return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}.${String(ms).padStart(3, '0')}`;
     }
 
-    // Helper to get a YouTube Music Video ID using a public search alternative or companion endpoint
-    async function fetchVideoIdFromSearch(title, artist) {
+    // Isolate the 11-character ID from direct text or URLs
+    function extractVideoId(text) {
+        if (!text) return null;
+        text = text.trim();
+        
+        if (text.length === 11 && !text.includes('/') && !text.includes('?')) {
+            return text;
+        }
+
+        const regExp = /^.*(?:(?:youtu\.be\/|v\/|vi\/|u\/\w\/|embed\/|shorts\/)|(?:(?:watch)?\?v(?:i)?=|\&v(?:i)?=))([^#\&\?]*).*/;
+        const match = text.match(regExp);
+        
+        if (match && match[1] && match[1].length === 11) {
+            return match[1];
+        }
+
         try {
-            // Using a common public instance parser endpoint for YT Music searches
+            if (text.includes('/') && !text.includes('?v=')) {
+                const parts = text.split('/');
+                const lastPart = parts[parts.length - 1].split(/[?#]/)[0];
+                if (lastPart.length === 11) return lastPart;
+            }
+        } catch(e) {}
+
+        return null;
+    }
+
+    async function fetchVideoIdFromSearch(title, artist) {
+        const directId = extractVideoId(title) || extractVideoId(artist);
+        if (directId) return directId;
+
+        try {
             const searchQuery = encodeURIComponent(`${title} ${artist}`);
             const searchUrl = `https://pipedapi.kavin.rocks/search?q=${searchQuery}&filter=music_songs`;
             
             const res = await fetch(searchUrl);
             if (res.ok) {
                 const searchData = await res.json();
-                // Pick the videoId from the first result item
                 if (searchData.content && searchData.content.length > 0) {
                     const firstResult = searchData.content[0];
                     if (firstResult.url) {
-                        // Extracting ID from /watch?v=PARAMS
                         const idMatch = firstResult.url.match(/v=([^&]+)/);
                         return idMatch ? idMatch[1] : null;
                     }
                 }
             }
         } catch (e) {
-            console.error("YouTube Music search lookup error:", e);
+            console.warn("Automated search lookup failed or was blocked by CORS.", e);
         }
         return null;
     }
@@ -365,34 +391,58 @@
         const searchBtn = document.getElementById('search-btn');
 
         if (!rawTitle) {
-            status.textContent = "please enter a title";
+            status.textContent = "please enter a title, song query, or YouTube URL";
             return;
         }
 
-        status.textContent = "searching mirrors...";
+        status.textContent = "initializing search routine...";
         output.textContent = "";
         searchBtn.disabled = true;
 
-        let memoizedVideoId = null;
+        const explicitId = extractVideoId(rawTitle) || extractVideoId(rawArtist);
+        if (explicitId) {
+            status.textContent = `detected YouTube ID: ${explicitId}. fetching from SimpMusic...`;
+            const url = `https://api-lyrics.simpmusic.org/v1/${explicitId}`;
+            try {
+                const response = await fetch(url);
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data) {
+                        const formatted = JSON.stringify(data, null, 2);
+                        output.textContent = formatted;
+                        status.textContent = `found via api-lyrics.simpmusic.org`;
+                        searchBtn.disabled = false;
+                        document.getElementById('raw-json-input').value = formatted;
+                        return;
+                    }
+                }
+            } catch (e) {
+                console.error("Direct SimpMusic fetch failed", e);
+            }
+        }
 
         for (const base of endpoints) {
             let url;
             
             if (base === "SIMPMUSIC_API") {
-                status.textContent = "resolving YouTube Music Video ID...";
-                if (!memoizedVideoId) {
-                    memoizedVideoId = await fetchVideoIdFromSearch(rawTitle, rawArtist);
-                }
+                if (explicitId) continue; 
+                status.textContent = "searching via YouTube Music identifier...";
+                const resolvedId = await fetchVideoIdFromSearch(rawTitle, rawArtist);
                 
-                if (!memoizedVideoId) {
-                    console.log("Skipping SimpMusic mirror: could not resolve Video ID.");
+                if (!resolvedId) {
+                    console.log("Skipping SimpMusic: could not auto-resolve ID via search API.");
                     continue;
                 }
                 status.textContent = `trying mirror: api-lyrics.simpmusic.org`;
-                url = `https://api-lyrics.simpmusic.org/v1/${memoizedVideoId}`;
+                url = `https://api-lyrics.simpmusic.org/v1/${resolvedId}`;
             } else {
-                status.textContent = `trying mirror: ${new URL(base).hostname}`;
-                url = `${base}/v1/lyrics/get?title=${title}&artist=${artist}`;
+                if(base.startsWith("SIMPMUSIC")) continue;
+                try {
+                    status.textContent = `trying mirror: ${new URL(base).hostname}`;
+                    url = `${base}/v1/lyrics/get?title=${title}&artist=${artist}`;
+                } catch(urlErr) {
+                    continue;
+                }
             }
 
             try {
@@ -410,11 +460,11 @@
                     }
                 }
             } catch (e) {
-                console.error(e);
+                console.error(`Mirror failed or blocked by CORS: ${base}`, e);
             }
         }
 
-        status.textContent = "could not find raw data on any mirror";
+        status.textContent = "mirrors blocked or song not found. try pasting a direct YouTube URL into the title box!";
         output.textContent = "no results found";
         searchBtn.disabled = false;
     }
@@ -491,8 +541,7 @@
                     processedLines.push(currentLineWords);
                 }
             }
-
-            let syncedLyrics = "";
+let syncedLyrics = "";
 
             processedLines.forEach(lineItems => {
                 if (lineItems.length === 0) return;
@@ -527,4 +576,38 @@
                     } else {
                         syncedLyrics += `\n[${toLrcTimestamp(backgroundVocals[0].time)}]{bg}`;
                         backgroundVocals.forEach(syllable => {
-                            syncedLyrics += `<${toLrcTimestamp(syllable.time)}>
+                            syncedLyrics += `<${toLrcTimestamp(syllable.time)}>${syllable.text}<${toLrcTimestamp(syllable.time + (syllable.duration || 0))}>`;
+                        });
+                    }
+                }
+                syncedLyrics += "\n";
+            });
+
+            output.textContent = syncedLyrics.trim();
+            if (status.textContent !== "recovered incomplete layout safely!") {
+                status.textContent = "transformation process complete";
+            }
+        } catch (err) {
+            status.textContent = "processing error: " + err.message;
+        }
+    }
+
+    function copyToClipboard(contentElementId, statusElementId) {
+        const text = document.getElementById(contentElementId).textContent;
+        const status = statusElementId ? document.getElementById(statusElementId) : null;
+        const bad = ["raw json payload will appear here", "output is here", "no results found"];
+        
+        if (text && !bad.includes(text)) {
+            navigator.clipboard.writeText(text).then(() => {
+                if (status) {
+                    const current = status.textContent;
+                    status.textContent = "copied to clipboard";
+                    setTimeout(() => { status.textContent = current; }, 2000);
+                }
+            });
+        }
+    }
+</script>
+</body>
+</html>
+          

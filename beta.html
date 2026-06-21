@@ -530,6 +530,7 @@
                     const tokenRegex = /(<[^>]+>)?([^<]*)/g;
                     let match;
                     let lastTimeTag = `<${lineTimestamp}>`;
+                    let hasTokens = false;
 
                     while ((match = tokenRegex.exec(body)) !== null) {
                         if (match[0] === "") {
@@ -544,6 +545,7 @@
                         if (match[1]) lastTimeTag = match[1];
 
                         if (text) {
+                            hasTokens = true;
                             if (isBackgroundLine && bgStyle === "inline-tag") {
                                 text = text.replace(/[\(\)\[\]]/g, '');
                             }
@@ -551,19 +553,27 @@
                         }
                     }
                     
-                    if (!processedLineBody.endsWith('>')) {
+                    if (!hasTokens && body.trim().length > 0) {
+                        let plainText = body.trim();
+                        if (isBackgroundLine && bgStyle === "inline-tag") {
+                            plainText = plainText.replace(/[\(\)\[\]]/g, '');
+                        }
+                        processedLineBody = `<${lineTimestamp}>${plainText}<${lineTimestamp}>`;
+                    } else if (processedLineBody.length > 0 && !processedLineBody.endsWith('>')) {
                         processedLineBody += lastTimeTag;
                     }
 
-                    if (isBackgroundLine) {
-                        if (bgStyle === "inline-tag") {
-                            finalElrc += `[bg:${processedLineBody}]\n`;
+                    if (processedLineBody.length > 0) {
+                        if (isBackgroundLine) {
+                            if (bgStyle === "inline-tag") {
+                                finalElrc += `[bg:${processedLineBody}]\n`;
+                            } else {
+                                finalElrc += `[${lineTimestamp}]{bg}${processedLineBody}\n`;
+                            }
                         } else {
-                            finalElrc += `[${lineTimestamp}]{bg}${processedLineBody}\n`;
+                            let prefix = useMultiperson ? "v1:" : "";
+                            finalElrc += `[${lineTimestamp}]${prefix}${processedLineBody}\n`;
                         }
-                    } else {
-                        let prefix = useMultiperson ? "v1:" : "";
-                        finalElrc += `[${lineTimestamp}]${prefix}${processedLineBody}\n`;
                     }
                 });
 

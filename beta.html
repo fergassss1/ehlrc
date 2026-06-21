@@ -329,7 +329,6 @@
         return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}.${String(ms).padStart(3, '0')}`;
     }
 
-    // Isolate the 11-character ID from direct text or URLs
     function extractVideoId(text) {
         if (!text) return null;
         text = text.trim();
@@ -376,7 +375,7 @@
                 }
             }
         } catch (e) {
-            console.warn("Automated search lookup failed or was blocked by CORS.", e);
+            console.warn("automated search lookup failed or was blocked by cors.", e);
         }
         return null;
     }
@@ -391,17 +390,17 @@
         const searchBtn = document.getElementById('search-btn');
 
         if (!rawTitle) {
-            status.textContent = "please enter a title, song query, or YouTube URL";
+            status.textContent = "please enter a title, song query, or youtube url";
             return;
         }
 
-        status.textContent = "initializing search routine...";
+        status.textContent = "initializing search process...";
         output.textContent = "";
         searchBtn.disabled = true;
 
         const explicitId = extractVideoId(rawTitle) || extractVideoId(rawArtist);
         if (explicitId) {
-            status.textContent = `detected YouTube ID: ${explicitId}. fetching from SimpMusic...`;
+            status.textContent = `detected youtube id: ${explicitId}. fetching from simpmusic...`;
             const url = `https://api-lyrics.simpmusic.org/v1/${explicitId}`;
             try {
                 const response = await fetch(url);
@@ -417,7 +416,7 @@
                     }
                 }
             } catch (e) {
-                console.error("Direct SimpMusic fetch failed", e);
+                console.error("direct simpmusic fetch failed", e);
             }
         }
 
@@ -426,11 +425,11 @@
             
             if (base === "SIMPMUSIC_API") {
                 if (explicitId) continue; 
-                status.textContent = "searching via YouTube Music identifier...";
+                status.textContent = "searching via youtube music identifier...";
                 const resolvedId = await fetchVideoIdFromSearch(rawTitle, rawArtist);
                 
                 if (!resolvedId) {
-                    console.log("Skipping SimpMusic: could not auto-resolve ID via search API.");
+                    console.log("skipping simpmusic: could not auto-resolve id via search api.");
                     continue;
                 }
                 status.textContent = `trying mirror: api-lyrics.simpmusic.org`;
@@ -460,11 +459,11 @@
                     }
                 }
             } catch (e) {
-                console.error(`Mirror failed or blocked by CORS: ${base}`, e);
+                console.error(`mirror failed or blocked by cors: ${base}`, e);
             }
         }
 
-        status.textContent = "mirrors blocked or song not found. try pasting a direct YouTube URL into the title box!";
+        status.textContent = "mirrors blocked or song not found. try pasting a direct youtube url into the title box!";
         output.textContent = "no results found";
         searchBtn.disabled = false;
     }
@@ -501,6 +500,78 @@
         }
 
         try {
+            let targetObj = Array.isArray(payload) ? payload[0] : payload;
+            if (targetObj && targetObj.data && Array.isArray(targetObj.data)) targetObj = targetObj.data[0];
+
+            if (targetObj && (targetObj.richSyncLyrics || targetObj.syncedLyrics)) {
+                status.textContent = "processing simpmusic payload syntax...";
+                let rawString = targetObj.richSyncLyrics || targetObj.syncedLyrics;
+                
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = rawString;
+                rawString = tempDiv.textContent;
+
+                let lines = rawString.split('\n');
+                let finalElrc = "";
+
+                lines.forEach(line => {
+                    line = line.trim();
+                    if (!line) return;
+
+                    const lineTimeMatch = line.match(/^\[(\d{2}:\d{2}(?:\.\d{2,3})?)\]/);
+                    if (!lineTimeMatch) return;
+                    
+                    const lineTimestamp = lineTimeMatch[1];
+                    let body = line.replace(/^\[\d{2}:\d{2}(?:\.\d{2,3})?\]\s*/, '');
+
+                    const isBackgroundLine = body.trim().startsWith('(') && body.trim().endsWith(')');
+
+                    let processedLineBody = "";
+                    const tokenRegex = /(<[^>]+>)?([^<]*)/g;
+                    let match;
+                    let lastTimeTag = `<${lineTimestamp}>`;
+
+                    while ((match = tokenRegex.exec(body)) !== null) {
+                        if (match[0] === "") {
+                            if (tokenRegex.lastIndex >= body.length) break;
+                            tokenRegex.lastIndex++;
+                            continue;
+                        }
+                        
+                        let tag = match[1] || lastTimeTag;
+                        let text = match[2];
+                        
+                        if (match[1]) lastTimeTag = match[1];
+
+                        if (text) {
+                            if (isBackgroundLine && bgStyle === "inline-tag") {
+                                text = text.replace(/[\(\)\[\]]/g, '');
+                            }
+                            processedLineBody += `${tag}${text}`;
+                        }
+                    }
+                    
+                    if (!processedLineBody.endsWith('>')) {
+                        processedLineBody += lastTimeTag;
+                    }
+
+                    if (isBackgroundLine) {
+                        if (bgStyle === "inline-tag") {
+                            finalElrc += `[bg:${processedLineBody}]\n`;
+                        } else {
+                            finalElrc += `[${lineTimestamp}]{bg}${processedLineBody}\n`;
+                        }
+                    } else {
+                        let prefix = useMultiperson ? "v1:" : "";
+                        finalElrc += `[${lineTimestamp}]${prefix}${processedLineBody}\n`;
+                    }
+                });
+
+                output.textContent = finalElrc.trim();
+                status.textContent = "transformation process complete (simpmusic engine)";
+                return;
+            }
+
             let rawLyricsArray = [];
             if (payload.lyrics && Array.isArray(payload.lyrics)) {
                 rawLyricsArray = payload.lyrics;
@@ -516,20 +587,15 @@
 
             rawLyricsArray.forEach(item => {
                 if (!item) return;
-                
-                if (item.time === undefined || item.time === null || !item.text) {
-                    return; 
-                }
+                if (item.time === undefined || item.time === null || !item.text) return; 
 
                 currentLineWords.push(item);
                 if (item.isLineEnding === 1) {
                     const fullLineString = currentLineWords.map(w => w.text).join('').trim();
-                    
                     if (fullLineString.includes('/') && !fullLineString.includes(' / ')) {
                         currentLineWords = [];
                         return;
                     }
-
                     processedLines.push(currentLineWords);
                     currentLineWords = [];
                 }
@@ -541,7 +607,8 @@
                     processedLines.push(currentLineWords);
                 }
             }
-let syncedLyrics = "";
+
+            let syncedLyrics = "";
 
             processedLines.forEach(lineItems => {
                 if (lineItems.length === 0) return;
